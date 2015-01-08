@@ -15,6 +15,8 @@
 //				Hans 2014.01.13 Excel Generator
 //				Hans 2013.06.23 Create
 //------------------------------------------------------------------------------
+// Excel sheet version - 0.2.0
+//------------------------------------------------------------------------------
 // This must be synchronized with SecondBoot.h
 //------------------------------------------------------------------------------
 // Nexell System Infomation Header
@@ -47,29 +49,29 @@ FFFF0000	// 0x048 : Load Address for 2ndboot.
 FFFF0000	// 0x04C : Launch Address for 2ndboot.
 
 00000000	// 0x050	[7:0] - Channel number
-03000000	// 0x054	Boot From SDMMC	[31:42] - 0: USB, 1: SPI, 2: NAND, 3:SDMMC, 4: SDFS
+03000000	// 0x054	Boot From SDMMC	[31:24] - 0: USB, 1: SPI, 2: NAND, 3:SDMMC, 4: SDFS
 00000000	// 0x058
 
 //------------------------------------------------------------------------------
 // CLKPWR registers
 //------------------------------------------------------------------------------
-100D2C02	// 0x05C : PLL0		600MHz	P:3	M:300	S:2
+100CC801	// 0x05C : PLL0		800MHz	P:3	M:200	S:1
 100D2C01	// 0x060 : PLL1		1200MHz	P:3	M:300	S:1
-100CC801	// 0x064 : PLL2		800MHz	P:3	M:200	S:1	K:0
-50086601	// 0x068 : PLL3		614.4MHz	P:2	M:102	S:1	K:26214
+50086601	// 0x064 : PLL2		614.4MHz	P:2	M:102	S:1	K:26214
+100CC801	// 0x068 : PLL3		800MHz	P:3	M:200	S:1	K:0
 
-00000104	// 0x06C : PLL2 SPREAD
-66660104	// 0x070 : PLL3 SPREAD
+66660104	// 0x06C : PLL2 SPREAD
+00000104	// 0x070 : PLL3 SPREAD
 
 00000601	// 0x074 : CPU G0	PLL1	/FCLK:1200	/HCLK:300
-0000020A	// 0x078 : BUS		PLL2	/BCLK:400	/PCLK:200
-00208002	// 0x07C : MEM		PLL2	/MDCLK:800	/MCLK:800	/MBCLK:400	/MPCLK:200
-00000208	// 0x080 : GR3D		PLL0	/GR3DBCLK:300
-0000020A	// 0x084 : MPEG		PLL2	/MPEGBCLK:400	/MPEGPCLK:200
-00000208	// 0x088 : DISP		PLL0	/DISPBCLK:300	/DISPPCLK:150
-0000003A	// 0x08C : HDMI		PLL2	/HDMIPCLK:100
+0000020B	// 0x078 : BUS		PLL3	/BCLK:400	/PCLK:200
+00208003	// 0x07C : MEM		PLL3	/MDCLK:800	/MCLK:800	/MBCLK:400	/MPCLK:200
+00000208	// 0x080 : GR3D		PLL0	/GR3DBCLK:400
+0000020B	// 0x084 : MPEG		PLL3	/MPEGBCLK:400	/MPEGPCLK:200
+00000208	// 0x088 : DISP		PLL0	/DISPBCLK:400	/DISPPCLK:200
+0000003B	// 0x08C : HDMI		PLL3	/HDMIPCLK:100
 00000601	// 0x090 : CPU G1	PLL1	/FCLK:1200	/HCLK:300
-0000020A	// 0x094 : CCI4		PLL2	/CCI4BCLK:400	/CCI4PCLK:200
+0000020B	// 0x094 : CCI4		PLL3	/CCI4BCLK:400	/CCI4PCLK:200
 
 //------------------------------------------------------------------------------
 // MCU-D registers
