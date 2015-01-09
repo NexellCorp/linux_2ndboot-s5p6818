@@ -7,7 +7,8 @@
 .tmp*
 .version
 .depend
-System.map
 *.a
 *.d
-
+*.elf
+*.bin
+*.map
