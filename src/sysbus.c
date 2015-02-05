@@ -170,6 +170,7 @@ const u8 g_PeriQoSSI[2] = {
 
 void set_bus_config(void)
 {
+#if (CFG_BOTT_BUS_RESET | CFG_BOTT_BUS_MSG_ON | CFG_TOP_BUS_RESET | CFG_TOP_BUS_MSG_ON | CFG_PERI_BUS_RESET | CFG_PERI_BUS_MI_RESET | CFG_PERI_BUS_MSG_ON)
     u32 val, temp;
     u32 num_si, num_mi;
     u32 addr, i_slot;
@@ -550,6 +551,8 @@ retry_bus_reconfig:
         goto retry_bus_reconfig;
     }
 #endif
+
+#endif  // #if (CFG_BOTT_BUS_RESET | CFG_BOTT_BUS_MSG_ON | CFG_TOP_BUS_RESET | CFG_TOP_BUS_MSG_ON | CFG_PERI_BUS_RESET | CFG_PERI_BUS_MI_RESET | CFG_PERI_BUS_MSG_ON)
 
     return;
 }

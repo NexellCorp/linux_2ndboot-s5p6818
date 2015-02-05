@@ -24,18 +24,19 @@ LDFLAGS		=	-Bstatic							\
 			-nostdlib
 
 SYS_OBJS	=	startup.o secondboot.o				\
-			resetcon.o CRYPTO.o GPIO.o CRC32.o		\
-			clockinit.o debug.o lib2ndboot.o		\
+			resetcon.o GPIO.o CRC32.o			\
+			clockinit.o debug.o lib2ndboot.o buildinfo.o	\
 			sysbus.o					\
 			printf.o
 SYS_OBJS	+=	MemoryInit.o
+#SYS_OBJS	+=	CRYPTO.o
 #SYS_OBJS	+=	nx_tieoff.o
 
 ifeq ($(BOOTFROM),USB)
 SYS_OBJS	+=	iUSBBOOT.o
 endif
 ifeq ($(BOOTFROM),SPI)
-SYS_OBJS	+=	iSPIBOOT.o
+SYS_OBJS	+=	iSPIBOOT.o CRYPTO.o
 endif
 ifeq ($(BOOTFROM),SDMMC)
 SYS_OBJS	+=	iSDHCBOOT.o
@@ -93,6 +94,14 @@ link:
 bin:
 	@echo [binary.... $(DIR_TARGETOUTPUT)/$(TARGET_NAME).bin]
 	$(Q)$(MAKEBIN) -O binary $(DIR_TARGETOUTPUT)/$(TARGET_NAME).elf $(DIR_TARGETOUTPUT)/$(TARGET_NAME).bin
+ifeq ($(OS),Windows_NT)
+	@if exist $(DIR_OBJOUTPUT)			\
+		@$(RM) $(DIR_OBJOUTPUT)\buildinfo.o
+else
+	@if	[ -e $(DIR_OBJOUTPUT) ]; then 		\
+		$(RM) $(DIR_OBJOUTPUT)/buildinfo.o;	\
+	fi;
+endif
 
 ###################################################################################################
 clean:

@@ -49,9 +49,10 @@ Vectors:
         b       .               //; 1C - FIQ interrupts
 .global Sleep
 Sleep:
-        b       SystemSleep
+        b       SystemSleep     //; 20
 
-
+BuildInfo:
+        .word   0x68180203      //; 24, Chip name - 6818, Build num - v0.2.03
 Reset_Handler:
 //;        mcr     p15, 0 r0, c8, c9, 0                //; set debug break;
         mrc     p15, 0, r12, c0, c0, 5              //; Get our cpu id
@@ -145,7 +146,7 @@ pllchangedelayloop:                                 //; this code will be alread
 //; Self-Refresh Service
 //;==================================================================
 .global enterSelfRefresh                            //; this code is call linux kernel, so here is virtual memory space.
-.global SleepMain
+.global sleepMain
 .global vddPowerOff
 SystemSleep:        //; r0:alive r1:drex
 
@@ -179,13 +180,18 @@ DisableMMU:
         .align 4
 PhysicalStart:
 
+        //; Disable IRQ & FIQ.
+        mrs     r0, CPSR
+        orr     r0, r0, #(I_Bit|F_Bit)
+        msr     CPSR_cxsf, r0
+
         //; Set stack pointer
         mov     sp, #0xFF000000
         orr     sp, sp, #0x00FF0000
         add     sp, sp, #INTERNAL_SRAM_SIZE
 
-        //; Goto SleepMain function.
-        bl      SleepMain
+        //; Goto sleepMain function.
+        bl      sleepMain
         bl      vddPowerOff
         b       .                                   //; this time, core power will off and so cpu will die.
 
@@ -236,6 +242,7 @@ __WFE:
         bne     __WFE
         bx      r1                                  //; if valid address, get jump.
 
+#if 0
 .global BurstZero
 BurstZero:
         push    {r2-r9, lr}
@@ -270,6 +277,7 @@ BurstRead:
         ldmia   r0!, {r2-r9}
         stmia   r1!, {r2-r9}
         pop     {r2-r9, pc}
+#endif
 
 //;==================================================================
 //; End of startup.s

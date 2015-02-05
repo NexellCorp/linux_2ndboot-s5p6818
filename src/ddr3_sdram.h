@@ -21,10 +21,11 @@
 
 typedef enum
 {
-	SDRAM_MODE_REG_MR0	= 0,
-	SDRAM_MODE_REG_MR1	= 1,
-	SDRAM_MODE_REG_MR2	= 2,
-	SDRAM_MODE_REG_MR3	= 3
+    SDRAM_MODE_REG_MR0      = 0,
+    SDRAM_MODE_REG_MR1      = 1,
+    SDRAM_MODE_REG_MR2      = 2,
+    SDRAM_MODE_REG_MR3      = 3,
+    SDRAM_MODE_REG_MAX_MRn  = 0xFF
 }SDRAM_MODE_REG;
 
 struct SDRAM_MR0

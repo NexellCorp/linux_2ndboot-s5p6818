@@ -43,8 +43,8 @@
 //------------------------------------------------------------------------------
 //  System optional.
 //------------------------------------------------------------------------------
-#define CONFIG_MMU_ENABLE   (1)
-#define CONFIG_CACHE_L2X0   (0)
+#define MULTICORE_BRING_UP          (1)
+#define CCI400_COHERENCY_ENABLE     (1)
 
 
 #endif  //	__CFG_BOOT_DEFINE_H__

@@ -134,19 +134,21 @@ struct NX_SecondBootInfo
 
 	struct NX_DDRInitInfo DII;	// 0x088 ~ 0x0AC
 
-	U32 Stub[(0x1F0-0x0B0)/4];	// 0x0B0 ~ 0x1EC
+	U32 Stub[(0x1EC-0x0B0)/4];	// 0x0B0 ~ 0x1E8
 #endif
 #if defined(ARCH_NXP5430)
 	U32 DVO[9];					// 0x074 ~ 0x094
 
 	struct NX_DDRInitInfo DII;	// 0x098 ~ 0x0BC
 
-	U32 Stub[(0x1F0-0x0C0)/4];	// 0x0C0 ~ 0x1EC
+	U32 Stub[(0x1EC-0x0C0)/4];	// 0x0C0 ~ 0x1E8
 #endif
 
-	U32 MemTestAddr;			// 0x1F0
-	U32 MemTestSize;			// 0x1F4
-	U32 MemTestTryCount;		// 0x1F8
+	U32 MemTestAddr;			// 0x1EC
+	U32 MemTestSize;			// 0x1F0
+	U32 MemTestTryCount;		// 0x1F4
+
+	U32 BuildInfo;				// 0x1F8
 
 	U32 SIGNATURE;				// 0x1FC	"NSIH"
 };

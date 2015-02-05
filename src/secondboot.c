@@ -22,42 +22,35 @@
 #include "sysHeader.h"
 
 #include <nx_cci400.h>
-
-void    enterSelfRefresh(void);
-void    exitSelfRefresh(void);
-void    Clock_Init(void);
-void    set_bus_config(void);
-void    set_drex_qos(void);
-
-CBOOL   iUSBBOOT(struct NX_SecondBootInfo * const pTBI);
-CBOOL   iSPIBOOT(struct NX_SecondBootInfo * const pTBI);
-CBOOL   iSDXCBOOT(struct NX_SecondBootInfo * const pTBI);
-CBOOL   iNANDBOOTEC(struct NX_SecondBootInfo * const pTBI);
-CBOOL   iSDXCFSBOOT(struct NX_SecondBootInfo * const pTBI);
-void    DDR3_Init(U32);
-
-void    DisplayClkSet(void);
-
-void    Decrypt(U32 *SrcAddr, U32 *DestAddr, U32 Size);
-void    ResetCon(U32 devicenum, CBOOL en);
-
-extern inline U32 get_fcs(U32 fcs, U8 data);
-extern inline U32 iget_fcs(U32 fcs, U32 data);
-extern inline U32 __calc_crc(void *addr, int len);
-
-extern U32 getquotient(int dividend, int divisor);
-extern U32 getremainder(int dividend, int divisor);
+#include <nx_gic400.h>
 
 
 
+extern U32      iget_fcs(U32 fcs, U32 data);
+extern U32      __calc_crc(void *addr, int len);
+extern void     DMC_Delay(int milisecond);
 
-inline void DMC_Delay(int milisecond);
-U32     __GetCPUID(void);
-void    __WFI();
+//extern void     flushICache(void);
+//extern void     enableICache(CBOOL enable);
 
-void    BurstWrite(U32 *WriteAddr, U32 WData);
-void    BurstZero(U32 *WriteAddr, U32 WData);
-void    BurstRead(U32 *ReadAddr, U32 *SaveAddr);
+extern void     enterSelfRefresh(void);
+extern void     exitSelfRefresh(void);
+extern void     set_bus_config(void);
+extern void     set_drex_qos(void);
+
+extern CBOOL    iUSBBOOT(struct NX_SecondBootInfo * const pTBI);
+extern CBOOL    iUARTBOOT(struct NX_SecondBootInfo * const pTBI);
+extern CBOOL    iSPIBOOT(struct NX_SecondBootInfo * const pTBI);
+extern CBOOL    iSDXCBOOT(struct NX_SecondBootInfo * const pTBI);
+extern CBOOL    iNANDBOOTEC(struct NX_SecondBootInfo * const pTBI);
+extern CBOOL    iSDXCFSBOOT(struct NX_SecondBootInfo * const pTBI);
+extern void     initClock(void);
+extern void     initDDR3(U32);
+extern void     buildinfo(void);
+
+extern void     printClkInfo(void);
+
+extern void     ResetCon(U32 devicenum, CBOOL en);
 
 
 //------------------------------------------------------------------------------
@@ -66,7 +59,7 @@ static void dowakeup(void)
     U32 fn, sign, phy, crc, len;
     void (*jumpkernel)(void) = 0;
 
-    WriteIO32(&pReg_Alive->ALIVEPWRGATEREG, 1);         // open alive power gate
+    WriteIO32(&pReg_Alive->ALIVEPWRGATEREG, 1);             // open alive power gate
     fn   = ReadIO32(&pReg_Alive->ALIVESCRATCHVALUE1);
     sign = ReadIO32(&pReg_Alive->ALIVESCRATCHREADREG);
     phy  = ReadIO32(&pReg_Alive->ALIVESCRATCHVALUE3);
@@ -103,25 +96,24 @@ static void dowakeup(void)
 
 
 //------------------------------------------------------------------------------
-void CCI400_init(void)
+#if (CCI400_COHERENCY_ENABLE == 1)
+void initCCI400(void)
 {
-    struct NX_CCI400_RegisterSet *pCCIBUS = (struct NX_CCI400_RegisterSet *)PHY_BASEADDR_CCI400_MODULE;
+    struct NX_CCI400_RegisterSet *pReg_CCI400 = (struct NX_CCI400_RegisterSet *)PHY_BASEADDR_CCI400_MODULE;
 
     //before set barrier instruction.
-    pCCIBUS->COR = 1UL<<3;// protect to send barrier command to drex
+    WriteIO32( &pReg_CCI400->COR,   (1UL<<3) );             // protect to send barrier command to drex
 
-    pCCIBUS->CSI[BUSID_CS].SCR = 0;//&= ~(1<<0);        // snoop request disable
+    WriteIO32( &pReg_CCI400->CSI[BUSID_CS].SCR,     0 );    // snoop request disable
+    WriteIO32( &pReg_CCI400->CSI[BUSID_CODA].SCR,   0 );    // snoop request disable
+    WriteIO32( &pReg_CCI400->CSI[BUSID_TOP].SCR,    0 );    // snoop request disable
 
-    pCCIBUS->CSI[BUSID_CODA].SCR = 0;//&= ~(1<<0);      // snoop request disable
-
-    pCCIBUS->CSI[BUSID_TOP].SCR = 0;//&= ~(1<<0);       // snoop request disable
-
-    pCCIBUS->CSI[BUSID_CPUG1].SCR = 1<<31 | 1<<30 | 1<<1 | 1<<0;    // cpu 4~7
-
-    pCCIBUS->CSI[BUSID_CPUG0].SCR = 1<<31 | 1<<30 | 1<<1 | 1<<0;     // cpu 0~3
+    WriteIO32( &pReg_CCI400->CSI[BUSID_CPUG1].SCR,  (1<<31 | 1<<30 | 1<<1 | 1<<0) );    // cpu 4~7
+    WriteIO32( &pReg_CCI400->CSI[BUSID_CPUG0].SCR,  (1<<31 | 1<<30 | 1<<1 | 1<<0) );    // cpu 0~3
 }
+#endif  // #if (CCI400_COHERENCY_ENABLE == 1)
 
-
+#if (MULTICORE_BRING_UP == 1)
 void BringUpSlaveCPU(U32 CPUID)
 {
     WriteIO32( &pReg_ClkPwr->CPURESETMODE,      0x1);
@@ -150,10 +142,17 @@ void SetVectorLocation(U32 CPUID, CBOOL LowHigh)
         WriteIO32(&pReg_Tieoff->TIEOFFREG[78], regvalue);
     }
 }
+#endif  // #if (MULTICORE_BRING_UP == 1)
 
+void __WFI(void);
+#define CPU_ALIVE_FLAG_ADDR    0xC0010238
 void SubCPUBoot( U32 CPUID )
 {
-    volatile U32 *aliveflag = (U32*)0xC0010238;
+    volatile U32 *aliveflag = (U32*)CPU_ALIVE_FLAG_ADDR;
+
+    WriteIO32( &pReg_GIC400->GICC.CTLR,         0x07 );     // enable cpu interface
+    WriteIO32( &pReg_GIC400->GICC.PMR,          0xFF );     // all high priority
+    WriteIO32( &pReg_GIC400->GICD.ISENABLER[0], 0xFF );     // enable sgi all
 
 //    printf("Hello World. I'm CPU %d!\r\n", CPUID);
     DebugPutch('0'+CPUID);
@@ -163,8 +162,12 @@ void SubCPUBoot( U32 CPUID )
 }
 
 
-void SleepMain( void )
+struct NX_CLKPWR_RegisterSet * const clkpwr;
+void sleepMain( void )
 {
+//    WriteIO32( &clkpwr->PLLSETREG[1],   0x100CC801 );       //; set PLL1 - 800Mhz
+    WriteIO32( &clkpwr->PLLSETREG[1],   0x100CC802 );       //; set PLL1 - 400Mhz
+
     DebugInit();
     enterSelfRefresh();
 }
@@ -172,17 +175,22 @@ void SleepMain( void )
 
 void vddPowerOff( void )
 {
-    WriteIO32( &pReg_Alive->ALIVEPWRGATEREG,    0x00000001 );   //; alive power gate open
+    WriteIO32( &pReg_Alive->ALIVEPWRGATEREG,    0x00000001 );       //; alive power gate open
 
-    WriteIO32( &pReg_Alive->VDDOFFCNTVALUERST,  0xFFFFFFFF );   //; clear delay counter, refrence rtc clock
-    WriteIO32( &pReg_Alive->VDDOFFCNTVALUESET,  0x00000001 );   //; no need delay time
+    WriteIO32( &pReg_Alive->VDDOFFCNTVALUERST,  0xFFFFFFFF );       //; clear delay counter, refrence rtc clock
+    WriteIO32( &pReg_Alive->VDDOFFCNTVALUESET,  0x00000001 );       //; set minimum delay time for VDDPWRON pin. 1 cycle per 32.768Kh (about 30us)
+
+    WriteIO32( &pReg_Alive->VDDCTRLRSTREG,      0x00000001 );       //; vddpoweron off, start counting down.
+
+    DMC_Delay(600);     // 600 : 110us, Delay for Pending Clear. When CPU clock is 400MHz, this value is minimum delay value.
+
+    WriteIO32( &pReg_Alive->ALIVEGPIODETECTPENDREG, 0xFF );         //; all alive pend pending clear until power down.
+    WriteIO32( &pReg_Alive->ALIVEPWRGATEREG,    0x00000000 );       //; alive power gate close
 
     while(1)
     {
-        WriteIO32( &pReg_Alive->VDDCTRLRSTREG,          0x01 ); //; vddpoweron off, start delay counter
-
-        WriteIO32( &pReg_Alive->ALIVEGPIODETECTPENDREG, 0xFF ); //; all alive pend pending clear until power down.
-    }                                                           //; this time, core power will off and so cpu will die.
+        __asm__ __volatile__ ("wfi");                               //; now real entering point to stop mode.
+    }                                                               //; this time, core power will off and so cpu will die.
 }
 
 
@@ -192,21 +200,19 @@ void BootMain( U32 CPUID )
     struct NX_SecondBootInfo    TBI;
     struct NX_SecondBootInfo * pTBI = &TBI;    // third boot info
     CBOOL Result = CFALSE;
-    register volatile U32 tmp;
+    register volatile U32 temp;
     U32 CPUNumber, sign, isResume = 0;
-    volatile U32 *aliveflag = (U32*)0xC0010238;
+    volatile U32 *aliveflag = (U32*)CPU_ALIVE_FLAG_ADDR;
 
-#if 0
-    pReg_GPIO       = (struct NX_GPIO_RegisterSet   (*)[])PHY_BASEADDR_GPIOA_MODULE;
-    pReg_Alive      = (struct NX_ALIVE_RegisterSet      *)PHY_BASEADDR_ALIVE_MODULE;
-    pReg_Tieoff     = (struct NX_TIEOFF_RegisterSet     *)PHY_BASEADDR_TIEOFF_MODULE;
-    pReg_ClkPwr     = (struct NX_CLKPWR_RegisterSet     *)PHY_BASEADDR_CLKPWR_MODULE;
-    pReg_UartClkGen = (struct NX_CLKGEN_RegisterSet     *)PHY_BASEADDR_CLKGEN22_MODULE;
-    pReg_Uart       = (struct NX_UART_RegisterSet       *)PHY_BASEADDR_UART0_MODULE;
-#if defined(ARCH_NXP5430)
-    pReg_Drex       = (struct NX_DREXSDRAM_RegisterSet  *)PHY_BASEADDR_DREX_MODULE_CH0_APB;
-#endif
-#endif
+    // Set EMA for CPU Cluster0
+    temp  = ReadIO32( &pReg_Tieoff->TIEOFFREG[94] ) & ~((0x7 << 23) | (0x7 << 17));
+    temp |= ((0x1 << 23) | (0x1 << 17));
+    WriteIO32( &pReg_Tieoff->TIEOFFREG[94], temp);
+
+    // Set EMA for CPU Cluster1
+    temp  = ReadIO32( &pReg_Tieoff->TIEOFFREG[111] ) & ~((0x7 << 23) | (0x7 << 17));
+    temp |= ((0x1 << 23) | (0x1 << 17));
+    WriteIO32( &pReg_Tieoff->TIEOFFREG[111], temp);
 
 #if 1    // rom boot does not cross usb connection
     ClearIO32( &pReg_Tieoff->TIEOFFREG[13], (1<<3) );       //nUtmiResetSync = 0
@@ -216,7 +222,7 @@ void BootMain( U32 CPUID )
     ResetCon(RESETINDEX_OF_USB20OTG_MODULE_i_nRST, CTRUE);  // reset on
 #endif
 
-    Clock_Init();
+    initClock();
 
     //--------------------------------------------------------------------------
     // Debug Console
@@ -224,19 +230,22 @@ void BootMain( U32 CPUID )
     DebugInit();
 
 
-    printf( "\r\n" );
-    printf( "--------------------------------------------------------------------------------\r\n" );
-    printf( " Second Boot by Nexell Co. : Ver0.2 - Built on %s %s\r\n", __DATE__, __TIME__ );
-    printf( "--------------------------------------------------------------------------------\r\n" );
+    //--------------------------------------------------------------------------
+    // build information. version, build time and date
+    //--------------------------------------------------------------------------
+    buildinfo();
 
-    DisplayClkSet();
+    //--------------------------------------------------------------------------
+    // print clock information
+    //--------------------------------------------------------------------------
+    printClkInfo();
 
     //--------------------------------------------------------------------------
     // get VID & PID for USBD
     //--------------------------------------------------------------------------
-    tmp = ReadIO32(PHY_BASEADDR_ECID_MODULE + (3<<2));
-    g_USBD_VID = (tmp >> 16) & 0xFFFF;
-    g_USBD_PID = (tmp & 0xFFFF);
+    temp = ReadIO32(PHY_BASEADDR_ECID_MODULE + (3<<2));
+    g_USBD_VID = (temp >> 16) & 0xFFFF;
+    g_USBD_PID = (temp & 0xFFFF);
 
     if ((g_USBD_VID == 0) || (g_USBD_PID == 0))
     {
@@ -248,7 +257,7 @@ void BootMain( U32 CPUID )
         g_USBD_VID = 0x04E8;
         g_USBD_PID = 0x1234;
     }
-    printf("USBD VID = %04X, PID = %04X\r\n", g_USBD_VID, g_USBD_PID);
+    SYSMSG("USBD VID = %04X, PID = %04X\r\n", g_USBD_VID, g_USBD_PID);
 
 
     WriteIO32(&pReg_Alive->ALIVEPWRGATEREG, 1);
@@ -258,7 +267,8 @@ void BootMain( U32 CPUID )
         isResume = 1;
     }
 
-    DDR3_Init(isResume);
+    initDDR3(isResume);
+
     if (isResume)
     {
         exitSelfRefresh();
@@ -269,10 +279,18 @@ void BootMain( U32 CPUID )
     set_bus_config();
     set_drex_qos();
 
+#if (CCI400_COHERENCY_ENABLE == 1)
     printf( "CCI Init!\r\n" );
-    CCI400_init();
+    initCCI400();
+#endif
+
+    WriteIO32( &pReg_GIC400->GICC.CTLR, 0x07 );     // enable cpu interface
+    WriteIO32( &pReg_GIC400->GICC.PMR,  0xFF );     // all high priority
+    WriteIO32( &pReg_GIC400->GICD.CTLR, 0x03 );     // distinbutor enable
 
     printf( "Wakeup CPU " );
+
+#if (MULTICORE_BRING_UP == 1)
     for (CPUNumber = 1; CPUNumber < 8; CPUNumber++)
     {
         register volatile U32 delay;
@@ -286,6 +304,7 @@ void BootMain( U32 CPUID )
             printf("CPU %d is not aliving %d\r\n", CPUNumber, delay);
         DMC_Delay(10000);
     }
+#endif
 
     printf( "\r\nCPU Wakeup done! WFI is expected.\r\n" );
     printf( "CPU%d is Master!\r\n\n", CPUID );
@@ -297,7 +316,6 @@ void BootMain( U32 CPUID )
         dowakeup();
     }
     WriteIO32(&pReg_Alive->ALIVEPWRGATEREG, 0);
-
 
     if (pSBI->SIGNATURE != HEADER_ID)
         printf( "2nd Boot Header is invalid, Please check it out!\r\n" );
@@ -390,19 +408,41 @@ void BootMain( U32 CPUID )
     }
 #endif
 
-#if 1
+
+#if 0   // for memory test
+    {
+        U32 *pSrc = (U32 *)pTBI->LAUNCHADDR;
+        U32 *pDst = (U32 *)(0x50000000);
+        int i;
+
+        for (i = 0; i < (int)(pTBI->LOADSIZE >> 2); i++)
+        {
+            pDst[i] = pSrc[i];
+        }
+
+        for (i = 0; i < (int)(pTBI->LOADSIZE >> 2); i++)
+        {
+            if (pDst[i] != pSrc[i])
+            {
+                printf( "Copy check faile...\r\n" );
+                break;
+            }
+        }
+    }
+#endif
+
+
     if(Result)
     {
         void (*pLaunch)(U32,U32) = (void(*)(U32,U32))pTBI->LAUNCHADDR;
         printf( " Image Loading Done!\r\n" );
         printf( "Launch to 0x%08X\r\n", (U32)pLaunch );
-        tmp = 0x10000000;
-        while(DebugIsBusy() && tmp--);
+        temp = 0x10000000;
+        while(DebugIsBusy() && temp--);
         pLaunch(0, 4330);
     }
 
     printf( " Image Loading Failure Try to USB boot\r\n" );
-    tmp = 0x10000000;
-    while(DebugIsBusy() && tmp--);
-#endif
+    temp = 0x10000000;
+    while(DebugIsBusy() && temp--);
 }

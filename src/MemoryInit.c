@@ -20,10 +20,20 @@ extern inline void ResetCon(U32 devicenum, CBOOL en);
 extern inline void DMC_Delay(int milisecond);
 
 
-inline void SendDirectCommand(SDRAM_CMD cmd, U8 chipnum, SDRAM_MODE_REG mrx, U16 value)
+#if defined(MEM_TYPE_DDR3)
+//inline 
+void SendDirectCommand(SDRAM_CMD cmd, U8 chipnum, SDRAM_MODE_REG mrx, U16 value)
 {
-    WriteIO32((U32*)&pReg_Drex->DIRECTCMD, cmd<<24 | chipnum<<20 | mrx<<16 | value);
+    WriteIO32( &pReg_Drex->DIRECTCMD, (U32)((cmd<<24) | ((chipnum & 1)<<20) | (mrx<<16) | value) );
 }
+#endif
+#if defined(MEM_TYPE_LPDDR23)
+//inline 
+void SendDirectCommand(SDRAM_CMD cmd, U8 chipnum, SDRAM_MODE_REG mrx, U16 value)
+{
+    WriteIO32( &pReg_Drex->DIRECTCMD, (U32)((cmd<<24) | ((chipnum & 1)<<20) | (((mrx>>3) & 0x7)<<16) | ((mrx & 0x7)<<10) | ((value & 0xFF)<<2) | ((mrx>>6) & 0x3)) );
+}
+#endif
 
 void enterSelfRefresh(void)
 {
@@ -244,7 +254,7 @@ extern    void BurstZero(U32 *WriteAddr, U32 WData);
 extern    void BurstWrite(U32 *WriteAddr, U32 WData);
 extern    void BurstRead(U32 *ReadAddr, U32 *SaveAddr);
 //    struct NX_DREXSDRAM_RegisterSet *pReg_Drex = (struct NX_DREXSDRAM_RegisterSet *)PHY_BASEADDR_DREX_MODULE_CH0_APB;
-    struct NX_DDRPHY_RegisterSet *pDDRPHY = (struct NX_DDRPHY_RegisterSet *)PHY_BASEADDR_DREX_MODULE_CH1_APB;
+    struct NX_DDRPHY_RegisterSet *pReg_DDRPHY = (struct NX_DDRPHY_RegisterSet *)PHY_BASEADDR_DREX_MODULE_CH1_APB;
     unsigned int rnw, lane, adjusted_dqs_delay=0, bit, pmin, nmin;
     unsigned int *tptr = (unsigned int *)0x40100000;
     int toggle;
@@ -268,9 +278,9 @@ extern    void BurstRead(U32 *ReadAddr, U32 *SaveAddr);
             printf("bit:%02d\t", bit);
             pwdelay = 0x80;
             if(rnw ==0)
-                WriteIO32(&pDDRPHY->OFFSETW_CON[0], 0x80<<(8*lane));
+                WriteIO32(&pReg_DDRPHY->OFFSETW_CON[0], 0x80<<(8*lane));
             else
-                WriteIO32(&pDDRPHY->OFFSETR_CON[0], 0x80<<(8*lane));
+                WriteIO32(&pReg_DDRPHY->OFFSETR_CON[0], 0x80<<(8*lane));
             SetIO32  ( &pReg_Drex->PHYCONTROL,      (0x1    <<   3));           // Force DLL Resyncronization
             ClearIO32( &pReg_Drex->PHYCONTROL,      (0x1    <<   3));           // Force DLL Resyncronization
             DMC_Delay(10000);
@@ -278,9 +288,9 @@ extern    void BurstRead(U32 *ReadAddr, U32 *SaveAddr);
             {
                 repeatcount=0;
                 if(rnw ==0)
-                    WriteIO32(&pDDRPHY->OFFSETW_CON[0], dqs_wdelay<<(8*lane));
+                    WriteIO32(&pReg_DDRPHY->OFFSETW_CON[0], dqs_wdelay<<(8*lane));
                 else
-                    WriteIO32(&pDDRPHY->OFFSETR_CON[0], dqs_wdelay<<(8*lane));
+                    WriteIO32(&pReg_DDRPHY->OFFSETR_CON[0], dqs_wdelay<<(8*lane));
                 SetIO32  ( &pReg_Drex->PHYCONTROL,      (0x1    <<   3));       // Force DLL Resyncronization
                 ClearIO32( &pReg_Drex->PHYCONTROL,      (0x1    <<   3));       // Force DLL Resyncronization
                 DMC_Delay(10000);
@@ -317,9 +327,9 @@ extern    void BurstRead(U32 *ReadAddr, U32 *SaveAddr);
                 }
             }    // dqs_wdelay
             if(rnw==0)
-                WriteIO32(&pDDRPHY->OFFSETW_CON[0], 0<<(8*lane));
+                WriteIO32(&pReg_DDRPHY->OFFSETW_CON[0], 0<<(8*lane));
             else
-                WriteIO32(&pDDRPHY->OFFSETR_CON[0], 0<<(8*lane));
+                WriteIO32(&pReg_DDRPHY->OFFSETR_CON[0], 0<<(8*lane));
             SetIO32  ( &pReg_Drex->PHYCONTROL,      (0x1    <<   3));           // Force DLL Resyncronization
             ClearIO32( &pReg_Drex->PHYCONTROL,      (0x1    <<   3));           // Force DLL Resyncronization
             DMC_Delay(10000);
@@ -328,9 +338,9 @@ extern    void BurstRead(U32 *ReadAddr, U32 *SaveAddr);
             {
                 repeatcount=0;
                 if(rnw == 0)
-                    WriteIO32(&pDDRPHY->OFFSETW_CON[0], dqs_wdelay<<(8*lane));
+                    WriteIO32(&pReg_DDRPHY->OFFSETW_CON[0], dqs_wdelay<<(8*lane));
                 else
-                    WriteIO32(&pDDRPHY->OFFSETR_CON[0], dqs_wdelay<<(8*lane));
+                    WriteIO32(&pReg_DDRPHY->OFFSETR_CON[0], dqs_wdelay<<(8*lane));
                 SetIO32  ( &pReg_Drex->PHYCONTROL,      (0x1    <<   3));       // Force DLL Resyncronization
                 ClearIO32( &pReg_Drex->PHYCONTROL,      (0x1    <<   3));       // Force DLL Resyncronization
                 DMC_Delay(10000);
@@ -394,26 +404,23 @@ extern    void BurstRead(U32 *ReadAddr, U32 *SaveAddr);
         }   // lane
 
         if(rnw == 0)
-            WriteIO32(&pDDRPHY->OFFSETW_CON[0], adjusted_dqs_delay);
+            WriteIO32(&pReg_DDRPHY->OFFSETW_CON[0], adjusted_dqs_delay);
         else
-            WriteIO32(&pDDRPHY->OFFSETR_CON[0], adjusted_dqs_delay);
+            WriteIO32(&pReg_DDRPHY->OFFSETR_CON[0], adjusted_dqs_delay);
         SetIO32  ( &pReg_Drex->PHYCONTROL,   (0x1   <<   3));           // Force DLL Resyncronization
         ClearIO32( &pReg_Drex->PHYCONTROL,   (0x1   <<   3));           // Force DLL Resyncronization
         printf("\r\n");
-        printf("read  delay value is 0x%08X\r\n", ReadIO32(&pDDRPHY->OFFSETR_CON[0]));
-        printf("write delay value is 0x%08X\r\n", ReadIO32(&pDDRPHY->OFFSETW_CON[0]));
+        printf("read  delay value is 0x%08X\r\n", ReadIO32(&pReg_DDRPHY->OFFSETR_CON[0]));
+        printf("write delay value is 0x%08X\r\n", ReadIO32(&pReg_DDRPHY->OFFSETW_CON[0]));
     }
 }
 #endif
 
-void DDR3_Init(U32 isResume)
+void initDDR3(U32 isResume)
 {
-//    struct NX_DREXSDRAM_RegisterSet *pReg_Drex = (struct NX_DREXSDRAM_RegisterSet *)PHY_BASEADDR_DREX_MODULE_CH0_APB;
-    struct NX_DREXTZ_RegisterSet *pReg_DrexTZ = (struct NX_DREXTZ_RegisterSet *)PHY_BASEADDR_DREX_TZ_MODULE;
-    struct NX_DDRPHY_RegisterSet *pDDRPHY = (struct NX_DDRPHY_RegisterSet *)PHY_BASEADDR_DREX_MODULE_CH1_APB;
-//    struct NX_RSTCON_RegisterSet * const pRSTCONReg = (struct NX_RSTCON_RegisterSet *)PHY_BASEADDR_RSTCON_MODULE;
     union SDRAM_MR MR0, MR1, MR2, MR3;
     U32 DDR_AL, DDR_WL, DDR_RL;
+    U32 lock_val;
     U32 temp;
 
 
@@ -437,7 +444,7 @@ void DDR3_Init(U32 isResume)
     if (isResume == 0)
     {
         MR2.Reg         = 0;
-        MR2.MR2.RTT_WR  = 2; // RTT_WR - 0: disable, 1: RZQ/4, 2: RZQ/2
+        MR2.MR2.RTT_WR  = 2; // RTT_WR - 0: ODT disable, 1: RZQ/4, 2: RZQ/2
         MR2.MR2.SRT     = 0; // self refresh normal range
         MR2.MR2.ASR     = 0; // auto self refresh disable
 #if (CFG_NSIH_EN == 0)
@@ -497,10 +504,12 @@ void DDR3_Init(U32 isResume)
     }   // if (isResume == 0)
 
 // Step 1. reset (Min : 10ns, Typ : 200us)
+#if 0
     ResetCon(RESETINDEX_OF_DREX_MODULE_CRESETn, CTRUE);
     ResetCon(RESETINDEX_OF_DREX_MODULE_ARESETn, CTRUE);
     ResetCon(RESETINDEX_OF_DREX_MODULE_nPRST,   CTRUE);
     DMC_Delay(0x1000);                         // wait 300ms
+#endif
     ResetCon(RESETINDEX_OF_DREX_MODULE_CRESETn, CFALSE);
     ResetCon(RESETINDEX_OF_DREX_MODULE_ARESETn, CFALSE);
     ResetCon(RESETINDEX_OF_DREX_MODULE_nPRST,   CFALSE);
@@ -514,34 +523,36 @@ void DDR3_Init(U32 isResume)
     ResetCon(RESETINDEX_OF_DREX_MODULE_nPRST,   CFALSE);
     DMC_Delay(0x1000);                         // wait 300ms
 
-    printf("PHY Version: %X\r\n", ReadIO32(&pDDRPHY->VERSION_INFO));
+    while( ReadIO32(&pReg_DDRPHY->VERSION_INFO) == 0 )
+    {
+        DMC_Delay(100);
+    }
+    printf("PHY Version: 0x%08X\r\n", ReadIO32(&pReg_DDRPHY->VERSION_INFO));
 
 #if 1    // ddr simulation
 // Step 2. Select Memory type : DDR3
 // Check DDR3 MPR data and match it to PHY_CON[1]??
     temp = (
-        (0x0    <<  29) |           // [31:29] Reserved - SBZ.
-        (0x17   <<  24) |           // [28:24] T_WrWrCmd.
-        (0x1    <<  22) |           // [23:22] DLL Update control 0:always, 1: depending on ctrl_flock, 2: depending on ctrl_clock, 3: don't update
-        (0x0    <<  20) |           // [21:20] ctrl_upd_range.
+        (0x17   <<  24) |           // [28:24] T_WrWrCmd
+        (0x1    <<  22) |           // [23:22] ctrl_upd_mode. DLL Update control 0:always, 1: depending on ctrl_flock, 2: depending on ctrl_clock, 3: don't update
+        (0x0    <<  20) |           // [21:20] ctrl_upd_range
 #if (CFG_NSIH_EN == 0)
 #if (tWTR == 3)     // 6 cycles
-        (0x7    <<  17) |           // [19:17] T_RwRdCmd. 6:tWTR=4cycle, 7:tWTR=6cycle
+        (0x7    <<  17) |           // [19:17] T_WrRdCmd. 6:tWTR=4cycle, 7:tWTR=6cycle
 #elif (tWTR == 2)   // 4 cycles
-        (0x6    <<  17) |           // [19:17] T_RwRdCmd. 6:tWTR=4cycle, 7:tWTR=6cycle
+        (0x6    <<  17) |           // [19:17] T_WrRdCmd. 6:tWTR=4cycle, 7:tWTR=6cycle
 #endif
 #endif
-        (0x0    <<  16) |           // [   16] ctrl_wrlvl_en[16]. Write Leveling Enable. 0:Disable, 1:Enable
-//        (0x0    <<  15) |           // [   15] Reserved SBZ.
+        (0x0    <<  16) |           // [   16] wrlvl_mode. Write Leveling Enable. 0:Disable, 1:Enable
         (0x0    <<  14) |           // [   14] p0_cmd_en. 0:Issue Phase1 Read command during Read Leveling. 1:Issue Phase0
         (0x0    <<  13) |           // [   13] byte_rdlvl_en. Read Leveling 0:Disable, 1:Enable
         (0x1    <<  11) |           // [12:11] ctrl_ddr_mode. 0:DDR2&LPDDR1, 1:DDR3, 2:LPDDR2, 3:LPDDR3
-        (0x1    <<  10) |           // [   10] Write ODT Disable Signal during Write Calibration. 0: not change, 1: disable
+        (0x1    <<  10) |           // [   10] ctrl_wr_dis. Write ODT Disable Signal during Write Calibration. 0: not change, 1: disable
         (0x1    <<   9) |           // [    9] ctrl_dfdqs. 0:Single-ended DQS, 1:Differential DQS
-//        (0x0    <<   8) |           // [    8] ctrl_shgate. 0:Gate signal length=burst length/2+N, 1:Gate signal length=burst length/2-1
         (0x1    <<   8) |           // [    8] ctrl_shgate. 0:Gate signal length=burst length/2+N, 1:Gate signal length=burst length/2-1
-        (0x1    <<   6) |           // [    6] ctrl_atgate.
-        (0x0    <<   4) |           // [    4] ctrl_cmosrcv.
+        (0x1    <<   6) |           // [    6] ctrl_atgate
+        (0x0    <<   4) |           // [    4] ctrl_cmosrcv
+        (0x0    <<   3) |           // [    3] ctrl_twpre
         (0x0    <<   0));           // [ 2: 0] ctrl_fnc_fb. 000:Normal operation.
 
 #if (CFG_NSIH_EN == 1)
@@ -551,95 +562,108 @@ void DDR3_Init(U32 isResume)
         temp |= (0x6    <<  17);
 #endif
 
-    WriteIO32( &pDDRPHY->PHY_CON[0],    temp );
+    WriteIO32( &pReg_DDRPHY->PHY_CON[0],    temp );
 
 #if 1
 #ifdef MEM_TYPE_DDR3
-    temp  = ReadIO32( &pDDRPHY->LP_DDR_CON[3]) & ~0x3FFF;
+    temp  = ReadIO32( &pReg_DDRPHY->LP_DDR_CON[3]) & ~0x3FFF;
     temp |= 0x105E;                                             // cmd_active= DDR3:0x105E, LPDDDR2 or LPDDDR3:0x000E
-    WriteIO32( &pDDRPHY->LP_DDR_CON[3], temp);
+    WriteIO32( &pReg_DDRPHY->LP_DDR_CON[3], temp);
 
-    temp  = ReadIO32( &pDDRPHY->LP_DDR_CON[4]) & ~0x3FFF;
+    temp  = ReadIO32( &pReg_DDRPHY->LP_DDR_CON[4]) & ~0x3FFF;
     temp |= 0x107F;                                             // cmd_default= DDR3:0x107F, LPDDDR2 or LPDDDR3:0x000F
-    WriteIO32( &pDDRPHY->LP_DDR_CON[4], temp);
-#endif
+    WriteIO32( &pReg_DDRPHY->LP_DDR_CON[4], temp);
 
-#ifdef MEM_TYPE_LPDDR23
-    temp  = ReadIO32( &pDDRPHY->LP_DDR_CON[3]) & ~0x3FFF;
+    ClearIO32( &pReg_DDRPHY->OFFSETD_CON,   (0x1    <<  28) );  // upd_mode[28]=0
+#endif  // #if defined(MEM_TYPE_DDR3)
+
+#if defined(MEM_TYPE_LPDDR23)
+    temp  = ReadIO32( &pReg_DDRPHY->LP_DDR_CON[3]) & ~0x3FFF;
     temp |= 0x000E;                                             // cmd_active= DDR3:0x105E, LPDDDR2 or LPDDDR3:0x000E
-    WriteIO32( &pDDRPHY->LP_DDR_CON[3], temp);
+    WriteIO32( &pReg_DDRPHY->LP_DDR_CON[3], temp);
 
-    temp  = ReadIO32( &pDDRPHY->LP_DDR_CON[4]) & ~0x3FFF;
+    temp  = ReadIO32( &pReg_DDRPHY->LP_DDR_CON[4]) & ~0x3FFF;
     temp |= 0x000F;                                             // cmd_default= DDR3:0x107F, LPDDDR2 or LPDDDR3:0x000F
-    WriteIO32( &pDDRPHY->LP_DDR_CON[4], temp);
+    WriteIO32( &pReg_DDRPHY->LP_DDR_CON[4], temp);
 
-    SetIO32( &pDDRPHY->OFFSETD_CON,     (1<<28) );
-#endif
+    SetIO32  ( &pReg_DDRPHY->OFFSETD_CON,   (0x1    <<  28) );  // upd_mode[28]=1
+#endif  // #if defined(MEM_TYPE_LPDDR23)
 #endif
 
     printf("phy init\r\n");
 
-/* Set WL, RL, BL */
-    WriteIO32( &pDDRPHY->PHY_CON[4],
-        (0x8    <<  8) |            // Burst Length(BL)
-        (DDR_WL << 16) |            // T_wrdata_en (WL+1)
-        (DDR_RL <<  0));            // Read Latency(RL), 800MHz:0xB, 533MHz:0x5
+    /* Set WL, RL, BL */
+    WriteIO32( &pReg_DDRPHY->PHY_CON[4],
+        (DDR_WL << 16) |            // [20:16] T_wrdata_en (WL+1)
+        (0x8    <<  8) |            // [12: 8] Burst Length(BL)
+        (DDR_RL <<  0));            // [ 4: 0] Read Latency(RL), 800MHz:0xB, 533MHz:0x5
 
     /* ZQ Calibration */
-    WriteIO32( &pDDRPHY->DRVDS_CON[0],        // 100: 48ohm, 101: 40ohm, 110: 34ohm, 111: 30ohm
-        (0x6    <<  25) |           // Data Slice 3
-        (0x6    <<  22) |           // Data Slice 2
-        (0x6    <<  19) |           // Data Slice 1
-        (0x6    <<  16) |           // Data Slice 0
-        (0x6    <<   9) |           // CK
-        (0x6    <<   6) |           // CKE
-        (0x6    <<   3) |           // CS
-        (0x6    <<   0));           // CA[9:0], RAS, CAS, WEN, ODT[1:0], RESET, BANK[2:0]
+    WriteIO32( &pReg_DDRPHY->DRVDS_CON[0],      // 100: 48ohm, 101: 40ohm, 110: 34ohm, 111: 30ohm
+        (PHY_DRV_STRENGTH_34OHM <<  28) |       // [30:28] Data Slice 4
+        (PHY_DRV_STRENGTH_34OHM <<  25) |       // [27:25] Data Slice 3
+        (PHY_DRV_STRENGTH_34OHM <<  22) |       // [24:22] Data Slice 2
+        (PHY_DRV_STRENGTH_34OHM <<  19) |       // [21:19] Data Slice 1
+        (PHY_DRV_STRENGTH_34OHM <<  16) |       // [18:16] Data Slice 0
+        (PHY_DRV_STRENGTH_34OHM <<   9) |       // [11: 9] CK
+        (PHY_DRV_STRENGTH_34OHM <<   6) |       // [ 8: 6] CKE
+        (PHY_DRV_STRENGTH_34OHM <<   3) |       // [ 5: 3] CS
+        (PHY_DRV_STRENGTH_34OHM <<   0));       // [ 2: 0] CA[9:0], RAS, CAS, WEN, ODT[1:0], RESET, BANK[2:0]
 
+    WriteIO32( &pReg_DDRPHY->DRVDS_CON[1],      // 100: 48ohm, 101: 40ohm, 110: 34ohm, 111: 30ohm
+        (PHY_DRV_STRENGTH_34OHM <<  25) |       // [11: 9] Data Slice 8
+        (PHY_DRV_STRENGTH_34OHM <<  22) |       // [ 8: 6] Data Slice 7
+        (PHY_DRV_STRENGTH_34OHM <<  19) |       // [ 5: 3] Data Slice 6
+        (PHY_DRV_STRENGTH_34OHM <<  16));       // [ 2: 0] Data Slice 5
 
     // Driver Strength(zq_mode_dds), zq_clk_div_en[18]=Enable
-    WriteIO32( &pDDRPHY->ZQ_CON,
-//        (0x0    <<  28) |           // Reserved[31:28]. SBZ
-        (0x1    <<  27) |           // zq_clk_en[27]. ZQ I/O clock enable.
-        (0x6    <<  24) |           // zq_mode_dds[26:24], Driver strength selection. 100 : 48ohm, 101 : 40ohm, 110 : 34ohm, 111 : 30ohm
-//        (0x7    <<  24) |           // zq_mode_dds[26:24], Driver strength selection. 100 : 48ohm, 101 : 40ohm, 110 : 34ohm, 111 : 30ohm
-        (0x1    <<  21) |           // ODT resistor value[23:21]. 001 : 120ohm, 010 : 60ohm, 011 : 40ohm, 100 : 30ohm
-//        (0x0    <<  21) |           // ODT resistor value[23:21]. 001 : 120ohm, 010 : 60ohm, 011 : 40ohm, 100 : 30ohm
-        (0x0    <<  20) |           // zq_rgddr3[20]. GDDR3 mode. 0:Enable, 1:Disable
-        (0x0    <<  19) |           // zq_mode_noterm[19]. Termination. 0:Enable, 1:Disable
-        (0x1    <<  18) |           // zq_clk_div_en[18]. Clock Dividing Enable : 0, Disable : 1
-        (0x0    <<  15) |           // zq_force-impn[17:15]
-//        (0x7    <<  12) |           // zq_force-impp[14:12]
-        (0x0    <<  12) |           // zq_force-impp[14:12]
-        (0x30   <<   4) |           // zq_udt_dly[11:4]
-        (0x1    <<   2) |           // zq_manual_mode[3:2]. 0:Force Calibration, 1:Long cali, 2:Short cali
-        (0x0    <<   1) |           // zq_manual_str[1]. Manual Calibration Stop : 0, Start : 1
-        (0x0    <<   0));           // zq_auto_en[0]. Auto Calibration enable
+    WriteIO32( &pReg_DDRPHY->ZQ_CON,
+        (0x1    <<  27) |                       // [   27] zq_clk_en. ZQ I/O clock enable.
+//        (PHY_DRV_STRENGTH_30OHM <<  24) |       // [26:24] zq_mode_dds, Driver strength selection. 100 : 48ohm, 101 : 40ohm, 110 : 34ohm, 111 : 30ohm
+        (PHY_DRV_STRENGTH_34OHM <<  24) |       // [26:24] zq_mode_dds, Driver strength selection. 100 : 48ohm, 101 : 40ohm, 110 : 34ohm, 111 : 30ohm
+//        (PHY_DRV_STRENGTH_40OHM <<  24) |       // [26:24] zq_mode_dds, Driver strength selection. 100 : 48ohm, 101 : 40ohm, 110 : 34ohm, 111 : 30ohm
+//        (PHY_DRV_STRENGTH_48OHM <<  24) |       // [26:24] zq_mode_dds, Driver strength selection. 100 : 48ohm, 101 : 40ohm, 110 : 34ohm, 111 : 30ohm
+//        (PHY_ODT_60OHM          <<  21) |       // [23:21] ODT resistor value. 001 : 120ohm, 010 : 60ohm, 011 : 40ohm, 100 : 30ohm
+        (PHY_ODT_120OHM         <<  21) |       // [23:21] ODT resistor value. 001 : 120ohm, 010 : 60ohm, 011 : 40ohm, 100 : 30ohm
+        (0x0    <<  20) |                       // [   20] zq_rgddr3. GDDR3 mode. 0:Enable, 1:Disable
+        (0x0    <<  19) |                       // [   19] zq_mode_noterm. Termination. 0:Enable, 1:Disable
+        (0x1    <<  18) |                       // [   18] zq_clk_div_en. Clock Dividing Enable : 0, Disable : 1
+        (0x0    <<  15) |                       // [17:15] zq_force-impn
+//        (0x7    <<  12) |                       // [14:12] zq_force-impp
+        (0x0    <<  12) |                       // [14:12] zq_force-impp
+        (0x30   <<   4) |                       // [11: 4] zq_udt_dly
+        (0x1    <<   2) |                       // [ 3: 2] zq_manual_mode. 0:Force Calibration, 1:Long cali, 2:Short cali
+        (0x0    <<   1) |                       // [    1] zq_manual_str. Manual Calibration Stop : 0, Start : 1
+        (0x0    <<   0));                       // [    0] zq_auto_en. Auto Calibration enable
 
-    SetIO32( &pDDRPHY->ZQ_CON,          (0x1    <<   1) );          // zq_manual_str[1]. Manual Calibration Start=1
-    while( ( ReadIO32( &pDDRPHY->ZQ_STATUS ) & 0x1 ) == 0 );        //- PHY0: wait for zq_done
-    ClearIO32( &pDDRPHY->ZQ_CON,        (0x1    <<   1) );          // zq_manual_str[1]. Manual Calibration Stop : 0, Start : 1
+    SetIO32( &pReg_DDRPHY->ZQ_CON,          (0x1    <<   1) );          // zq_manual_str[1]. Manual Calibration Start=1
+    while( ( ReadIO32( &pReg_DDRPHY->ZQ_STATUS ) & 0x1 ) == 0 );        //- PHY0: wait for zq_done
+    ClearIO32( &pReg_DDRPHY->ZQ_CON,        (0x1    <<   1) );          // zq_manual_str[1]. Manual Calibration Stop : 0, Start : 1
 
-    ClearIO32( &pDDRPHY->ZQ_CON,        (0x1    <<  18) );          // zq_clk_div_en[18]. Clock Dividing Enable : 1, Disable : 0
-
-
-
-// Step 5. dfi_init_start : High
-    SetIO32( &pReg_Drex->CONCONTROL,    (0x1    <<  28) );          // DFI PHY initialization start
-    while( (ReadIO32( &pReg_Drex->PHYSTATUS ) & (0x1<<3) ) == 0);   // wait for DFI PHY initialization complete
-    ClearIO32( &pReg_Drex->CONCONTROL,  (0x1    <<  28) );          // DFI PHY initialization clear
+    ClearIO32( &pReg_DDRPHY->ZQ_CON,        (0x1    <<  18) );          // zq_clk_div_en[18]. Clock Dividing Enable : 1, Disable : 0
 
 
 
     // Step 3. Set the PHY for dqs pull down mode
-    WriteIO32( &pDDRPHY->LP_CON,
-        (0x0    <<  16) |       // ctrl_pulld_dq[24:16]
-        (0xF    <<   0));       // ctrl_pulld_dqs[8:0].  No Gate leveling : 0xF, Use Gate leveling : 0x0(X)
+    WriteIO32( &pReg_DDRPHY->LP_CON,
+        (0x0    <<  16) |       // [24:16] ctrl_pulld_dq
+        (0xF    <<   0));       // [ 8: 0] ctrl_pulld_dqs.  No Gate leveling : 0xF, Use Gate leveling : 0x0(X)
+
+    WriteIO32( &pReg_DDRPHY->RODT_CON,
+        (0x0    <<  28) |       // [31:28] ctrl_readduradj
+        (0x1    <<  24) |       // [27:24] ctrl_readadj
+        (0x0    <<  16) |       // [  :16] ctrl_read_dis
+        (0x0    <<   0) );      // [  : 0] ctrl_read_width
+
+// Step 5. dfi_init_start : High
+    SetIO32  ( &pReg_Drex->CONCONTROL,      (0x1    <<  28) );          // dfi_init_start[28]. DFI PHY initialization start
+    while( (ReadIO32( &pReg_Drex->PHYSTATUS ) & (0x1<<3) ) == 0);       // dfi_init_complete[3]. wait for DFI PHY initialization complete
+    ClearIO32( &pReg_Drex->CONCONTROL,      (0x1    <<  28) );          // dfi_init_start[28]. DFI PHY initialization clear
 
 
     // Step 8 : Update DLL information
-    SetIO32  ( &pReg_Drex->PHYCONTROL,      (0x1    <<   3));       // Force DLL Resyncronization
-    ClearIO32( &pReg_Drex->PHYCONTROL,      (0x1    <<   3));       // Force DLL Resyncronization
+    SetIO32  ( &pReg_Drex->PHYCONTROL,      (0x1    <<   3) );          // Force DLL Resyncronization
+    ClearIO32( &pReg_Drex->PHYCONTROL,      (0x1    <<   3) );          // Force DLL Resyncronization
 
 
     // Step 11. MemBaseConfig
@@ -710,12 +734,13 @@ void DDR3_Init(U32 isResume)
 #endif
 
 // Step 13. Precharge Configuration
-//    WriteIO32( &pReg_Drex->PRECHCONFIG0,
-//        (0xF    <<    28)    |        // Timeout Precharge per Port
-//        (0x0    <<    16));            // open page policy
-//    WriteIO32( &pReg_Drex->PRECHCONFIG1,    0xFFFFFFFF );           //- precharge cycle
-//    WriteIO32( &pReg_Drex->PWRDNCONFIG,     0xFFFF00FF );           //- low power counter
-
+#if 0
+    WriteIO32( &pReg_Drex->PRECHCONFIG0,
+        (0xF    <<  28) |           // Timeout Precharge per Port
+        (0x0    <<  16));           // open page policy
+    WriteIO32( &pReg_Drex->PRECHCONFIG1,    0xFFFFFFFF );           //- precharge cycle
+    WriteIO32( &pReg_Drex->PWRDNCONFIG,     0xFFFF00FF );           //- low power counter
+#endif
 
 
 // Step 14.  AC Timing
@@ -802,20 +827,20 @@ void DDR3_Init(U32 isResume)
 #if 1
 #if defined(ARCH_NXP4330) || defined(ARCH_S5P4418)
 #if (CFG_NSIH_EN == 0)
-    WriteIO32( &pDDRPHY->PHY_CON[4],    READDELAY);
-    WriteIO32( &pDDRPHY->PHY_CON[6],    WRITEDELAY);
+    WriteIO32( &pReg_DDRPHY->PHY_CON[4],    READDELAY);
+    WriteIO32( &pReg_DDRPHY->PHY_CON[6],    WRITEDELAY);
 #else
-    WriteIO32( &pDDRPHY->PHY_CON[4],    pSBI->DII.READDELAY);
-    WriteIO32( &pDDRPHY->PHY_CON[6],    pSBI->DII.WRITEDELAY);
+    WriteIO32( &pReg_DDRPHY->PHY_CON[4],    pSBI->DII.READDELAY);
+    WriteIO32( &pReg_DDRPHY->PHY_CON[6],    pSBI->DII.WRITEDELAY);
 #endif
 #endif
 #if defined(ARCH_NXP5430)
 #if (CFG_NSIH_EN == 0)
-    WriteIO32( &pDDRPHY->OFFSETR_CON[0], READDELAY);
-    WriteIO32( &pDDRPHY->OFFSETW_CON[0], WRITEDELAY);
+    WriteIO32( &pReg_DDRPHY->OFFSETR_CON[0], READDELAY);
+    WriteIO32( &pReg_DDRPHY->OFFSETW_CON[0], WRITEDELAY);
 #else
-    WriteIO32( &pDDRPHY->OFFSETR_CON[0], pSBI->DII.READDELAY);
-    WriteIO32( &pDDRPHY->OFFSETW_CON[0], pSBI->DII.WRITEDELAY);
+    WriteIO32( &pReg_DDRPHY->OFFSETR_CON[0], pSBI->DII.READDELAY);
+    WriteIO32( &pReg_DDRPHY->OFFSETW_CON[0], pSBI->DII.WRITEDELAY);
 #endif
 #endif
 #endif
@@ -897,39 +922,37 @@ void DDR3_Init(U32 isResume)
 
 
 #if 1
-{
-    U32 lock0;
 
 //    printf("\r\n########## READ/GATE Level ##########\r\n");
 
-    SetIO32( &pDDRPHY->PHY_CON[0],        (0x1  <<  6) );           // ctrl_atgate=1
-    SetIO32( &pDDRPHY->PHY_CON[0],        (0x1  << 14) );           // p0_cmd_en=1
-    SetIO32( &pDDRPHY->PHY_CON[2],        (0x1  <<  6) );           // InitDeskewEn=1
-    SetIO32( &pDDRPHY->PHY_CON[0],        (0x1  << 13) );           // byte_rdlvl_en=1
+    SetIO32( &pReg_DDRPHY->PHY_CON[0],        (0x1  <<  6) );           // ctrl_atgate=1
+    SetIO32( &pReg_DDRPHY->PHY_CON[0],        (0x1  << 14) );           // p0_cmd_en=1
+    SetIO32( &pReg_DDRPHY->PHY_CON[2],        (0x1  <<  6) );           // InitDeskewEn=1
+    SetIO32( &pReg_DDRPHY->PHY_CON[0],        (0x1  << 13) );           // byte_rdlvl_en=1
 
-    temp  = ReadIO32( &pDDRPHY->PHY_CON[1]) & ~(0xF <<  16);        // rdlvl_pass_adj=4
-    temp|= (0x4 <<  16);
-    WriteIO32( &pDDRPHY->PHY_CON[1],    temp);
+    temp  = ReadIO32( &pReg_DDRPHY->PHY_CON[1]) & ~(0xF <<  16);        // rdlvl_pass_adj=4
+    temp |= (0x4 <<  16);
+    WriteIO32( &pReg_DDRPHY->PHY_CON[1],    temp);
 
-    temp  = ReadIO32( &pDDRPHY->LP_DDR_CON[3]) & ~0x3FFF;
+    temp  = ReadIO32( &pReg_DDRPHY->LP_DDR_CON[3]) & ~0x3FFF;
     temp |= 0x105E;                                                 // cmd_active= DDR3:0x105E, LPDDDR2 or LPDDDR3:0x000E
-    WriteIO32( &pDDRPHY->LP_DDR_CON[3],   temp);
+    WriteIO32( &pReg_DDRPHY->LP_DDR_CON[3],   temp);
 
-    temp  = ReadIO32( &pDDRPHY->LP_DDR_CON[4]) & ~0x3FFF;
+    temp  = ReadIO32( &pReg_DDRPHY->LP_DDR_CON[4]) & ~0x3FFF;
     temp |= 0x107F;                                                 // cmd_default= DDR3:0x107F, LPDDDR2 or LPDDDR3:0x000F
-    WriteIO32( &pDDRPHY->LP_DDR_CON[4],   temp);
+    WriteIO32( &pReg_DDRPHY->LP_DDR_CON[4],   temp);
 
-    temp  = ReadIO32( &pDDRPHY->PHY_CON[2]) & ~(0x7F << 16);        // rdlvl_incr_adj=1
+    temp  = ReadIO32( &pReg_DDRPHY->PHY_CON[2]) & ~(0x7F << 16);        // rdlvl_incr_adj=1
     temp |= (0x1 <<  16);
-    WriteIO32( &pDDRPHY->PHY_CON[2],    temp);
+    WriteIO32( &pReg_DDRPHY->PHY_CON[2],    temp);
 
-    ClearIO32( &pDDRPHY->MDLL_CON[0],   (0x1 << 5));                // ctrl_dll_on=0
+    ClearIO32( &pReg_DDRPHY->MDLL_CON[0],   (0x1    <<   5));           // ctrl_dll_on[5]=0
 
-    lock0 = (ReadIO32( &pDDRPHY->MDLL_CON[1]) >> 8) & 0x1FF;        // read lock value
+    lock_val = (ReadIO32( &pReg_DDRPHY->MDLL_CON[1]) >> 8) & 0x1FF;     // read lock value
 
-    temp  = ReadIO32( &pDDRPHY->MDLL_CON[0]) & ~(0x1FF << 7);
-    temp |= (lock0 << 7);
-    WriteIO32( &pDDRPHY->MDLL_CON[0],    temp);
+    temp  = ReadIO32( &pReg_DDRPHY->MDLL_CON[0] ) & ~(0x1FF << 7);
+    temp |= (lock_val << 7);
+    WriteIO32( &pReg_DDRPHY->MDLL_CON[0],    temp);                     // ctrl_force[16:8]
 
 #if (DDR_WRITE_LEVELING_EN == 1)
     DDR_Write_Leveling();
@@ -950,16 +973,18 @@ void DDR3_Init(U32 isResume)
     DDR_Write_DQ_Calibration();
 #endif
 
-    SetIO32( &pDDRPHY->MDLL_CON[0],     (0x1    <<   5));           // ctrl_dll_on=1
-    SetIO32( &pDDRPHY->PHY_CON[2],      (0x1    <<  12));           // DLLDeskewEn=1
+    SetIO32  ( &pReg_DDRPHY->MDLL_CON[0],   (0x1    <<   5));       // ctrl_dll_on[5]=1
+    SetIO32  ( &pReg_DDRPHY->PHY_CON[2],    (0x1    <<  12));       // DLLDeskewEn[12]=1
+
+#if defined(MEM_TYPE_LPDDR23)
+    ClearIO32( &pReg_DDRPHY->OFFSETD_CON,   (0x1    <<  28));       // upd_mode=0
+#endif
 
 #if 0
-    ClearIO32( &pDDRPHY->OFFSETD_CON,   (0x1    <<  28));           // upd_mode=0
-
-    SetIO32  ( &pDDRPHY->OFFSETD_CON,   (0x1    <<  24));           // ctrl_resync=1
-    ClearIO32( &pDDRPHY->OFFSETD_CON,   (0x1    <<  24));           // ctrl_resync=0
+    SetIO32  ( &pReg_DDRPHY->OFFSETD_CON,   (0x1    <<  24) );      // ctrl_resync[24]=0x1 (HIGH)
+    ClearIO32( &pReg_DDRPHY->OFFSETD_CON,   (0x1    <<  24) );      // ctrl_resync[24]=0x0 (LOW)
 #endif
-}
+
 #endif  // gate leveling
 
 
@@ -968,28 +993,27 @@ void DDR3_Init(U32 isResume)
     ClearIO32( &pReg_Drex->PHYCONTROL,      (0x1    <<   3));       // Force DLL Resyncronization
 
     temp = (U32)(
-//        (0x0    <<  29) |           // Reserved[31:29] SBZ.
-        (0x17   <<  24) |           // T_WrWrCmd.
-        (0x1    <<  22) |           // DLL Update control 0:always, 1: depending on ctrl_flock, 2: depending on ctrl_clock, 3: don't update
-        (0x0    <<  20) |           // ctrl_upd_range[21:20].
+        (0x17   <<  24) |           // [28:24] T_WrWrCmd
+        (0x1    <<  22) |           // [23:22] ctrl_upd_mode. DLL Update control 0:always, 1: depending on ctrl_flock, 2: depending on ctrl_clock, 3: don't update
+        (0x0    <<  20) |           // [21:20] ctrl_upd_range
 #if (CFG_NSIH_EN == 0)
 #if (tWTR == 3)
-        (0x7    <<  17) |           // T_RwRdCmd[19:17]. 6:tWTR=4cycle, 7:tWTR=6cycle
+        (0x7    <<  17) |           // [19:17] T_WrRdCmd. 6:tWTR=4cycle, 7:tWTR=6cycle
 #elif (tWTR == 2)
-        (0x6    <<  17) |           // T_RwRdCmd[19:17]. 6:tWTR=4cycle, 7:tWTR=6cycle
+        (0x6    <<  17) |           // [19:17] T_WrRdCmd. 6:tWTR=4cycle, 7:tWTR=6cycle
 #endif
 #endif
-        (0x0    <<  16) |           // ctrl_wrlvl_en[16]. Write Leveling Enable. 0:Disable, 1:Enable
-//        (0x0    <<  15) |           // Reserved[15] SBZ.
-        (0x0    <<  14) |           // p0_cmd_en[14]. 0:Issue Phase1 Read command during Read Leveling. 1:Issue Phase0
-        (0x0    <<  13) |           // byte_rdlvl_en[13]. Read Leveling 0:Disable, 1:Enable
-        (0x1    <<  11) |           // ctrl_ddr_mode[12:11]. 0:DDR2&LPDDR1, 1:DDR3, 2:LPDDR2, 3:LPDDR3
-        (0x1    <<  10) |           // Write ODT Disable Signal during Write Calibration. 0: not change, 1: disable
-        (0x1    <<   9) |           // ctrl_dfdqs[9]. 0:Single-ended DQS, 1:Differential DQS
-        (0x0    <<   8) |           // ctrl_shgate[8]. 0:Gate signal length=burst length/2+N, 1:Gate signal length=burst length/2-1
-        (0x1    <<   6) |           // ctrl_atgate[6].
-        (0x0    <<   4) |           // ctrl_cmosrcv[4].
-        (0x0    <<   0));           // ctrl_fnc_fb[2:0]. 000:Normal operation.
+        (0x0    <<  16) |           // [   16] wrlvl_mode. Write Leveling Enable. 0:Disable, 1:Enable
+        (0x0    <<  14) |           // [   14] p0_cmd_en. 0:Issue Phase1 Read command during Read Leveling. 1:Issue Phase0
+        (0x0    <<  13) |           // [   13] byte_rdlvl_en. Read Leveling 0:Disable, 1:Enable
+        (0x1    <<  11) |           // [12:11] ctrl_ddr_mode. 0:DDR2&LPDDR1, 1:DDR3, 2:LPDDR2, 3:LPDDR3
+        (0x1    <<  10) |           // [   10] ctrl_wr_dis. Write ODT Disable Signal during Write Calibration. 0: not change, 1: disable
+        (0x1    <<   9) |           // [    9] ctrl_dfdqs. 0:Single-ended DQS, 1:Differential DQS
+        (0x0    <<   8) |           // [    8] ctrl_shgate. 0:Gate signal length=burst length/2+N, 1:Gate signal length=burst length/2-1
+        (0x1    <<   6) |           // [    6] ctrl_atgate
+        (0x0    <<   4) |           // [    4] ctrl_cmosrcv
+        (0x0    <<   3) |           // [    3] ctrl_twpre
+        (0x0    <<   0));           // [ 2: 0] ctrl_fnc_fb. 000:Normal operation.
 
 #if (CFG_NSIH_EN == 1)
     if ((pSBI->DII.TIMINGDATA >> 28) == 3)      // 6 cycles
@@ -998,7 +1022,7 @@ void DDR3_Init(U32 isResume)
         temp |= (0x6    <<  17);
 #endif
 
-    WriteIO32( &pDDRPHY->PHY_CON[0],    temp );
+    WriteIO32( &pReg_DDRPHY->PHY_CON[0],    temp );
 
     /* Send PALL command */
     SendDirectCommand(SDRAM_CMD_PALL, 0, (SDRAM_MODE_REG)CNULL, CNULL);
@@ -1091,7 +1115,7 @@ void DDR3_Init(U32 isResume)
     //   + ctrl_ddr_mode=2'b10 (LDDR2)
     //   + ctrl_ddr_mode=2'b00 (DDR2)
     //   + ctrl_ddr_mode=2'b01 (DDR3)
-    WriteIO32( pDDRPHY->PHY_CON[0],
+    WriteIO32( pReg_DDRPHY->PHY_CON[0],
         (0x17   <<  24) |       // [28:24] T_WrWrCmd
         (0x1    <<  22) |       // [23:22] ctrl_upd_mode
         (0x0    <<  20) |       // [21:20] ctrl_upd_range
@@ -1116,7 +1140,7 @@ void DDR3_Init(U32 isResume)
     //   + Set RL in PHY_CON4[4:0].
     //   + Set BL in PHY_CON4[12:8].
     //   + Set WL in PHY_CON4[20:16].
-    WriteIO32( pDDRPHY->PHY_CON[4],
+    WriteIO32( pReg_DDRPHY->PHY_CON[4],
         (0x8    <<  16) |       // [20:16] WL = CWL + AL
         (0x8    <<   8) |       // [12: 8] BL
         (0xB    <<   0));       // [ 4: 0] RL
@@ -1126,7 +1150,7 @@ void DDR3_Init(U32 isResume)
     //   + Enable "zq_manual_str" in ZQ_CON0[1]
     //   + Wait until "zq_cal_done"(ZQ_CON1[0]) is enabled.
     //   + Disable "zq_manual_str" in ZQ_CON0[1]
-    WriteIO32( &pDDRPHY->ZQ_CON,
+    WriteIO32( &pReg_DDRPHY->ZQ_CON,
         (0x1    <<  27) |       // [   27] zq_clk_en
         (0x7    <<  24) |       // [26:24] zq_mode_dds
         (0x0    <<  21) |       // [23:21] zq_mode_term
@@ -1140,9 +1164,9 @@ void DDR3_Init(U32 isResume)
         (0x1    <<   1) |       // [    1] zq_manual_str    - Manual calibration start
         (0x0    <<   0));       // [    0] zq_auto_en
 
-    while( (ReadIO32(&pDDRPHY->ZQ_STATUS) & 0x1) != 0x1 );       // [    0] zq_done    - ZQ Callbration is finished
+    while( (ReadIO32(&pReg_DDRPHY->ZQ_STATUS) & 0x1) != 0x1 );       // [    0] zq_done    - ZQ Callbration is finished
 
-    WriteIO32( &pDDRPHY->ZQ_CON,
+    WriteIO32( &pReg_DDRPHY->ZQ_CON,
         (0x1    <<  27) |       // [   27] zq_clk_en
         (0x7    <<  24) |       // [26:24] zq_mode_dds
         (0x0    <<  21) |       // [23:21] zq_mode_term
@@ -1170,7 +1194,7 @@ void DDR3_Init(U32 isResume)
     // + Enable DQS pull down mode
     //   - Set "ctrl_pulld_dqs=9'h1FF" (=LP_CON0[8:0]) in case of using 72bit PHY.
     //   - Please be careful that DQS pull down can be disabled only after Gate Leveling is done.
-    WriteIO32( &pDDRPHY->LP_CON,
+    WriteIO32( &pReg_DDRPHY->LP_CON,
         (0x0    <<  16) |       // [24:16] ctrl_pulld_dq
         (0xF    <<   0));       // [ 8: 0] ctrl_pulld_dqs    - 0: pull-up for PDQS/NDQS signal 1: pull-down for PDQS/NDQS signal
 
@@ -1337,7 +1361,7 @@ void DDR3_Init(U32 isResume)
     ClearIO32( &pReg_Drex->PHYCONTROL,    (0x1    <<  3));        // [    3] fp_resync - Froce DLL Resyncronization
 
     //34. Disable PHY gating control through PHY APB I/F if necessary(ctrl_atgate, refer to PHY manual).
-    WriteIO32( &pDDRPHY->PHY_CON[0],
+    WriteIO32( &pReg_DDRPHY->PHY_CON[0],
         (0x17   <<  24) |       // [28:24] T_WrWrCmd
         (0x1    <<  22) |       // [23:22] ctrl_upd_mode
         (0x0    <<  20) |       // [21:20] ctrl_upd_range
@@ -1412,5 +1436,13 @@ void DDR3_Init(U32 isResume)
         (0x0    <<   0));       // [    0] busif_rd_cg_en
 }
 #endif    // ddr simulation
+
+
+    printf("GATE CYC  = 0x%08X\r\n", ReadIO32( &pReg_DDRPHY->SHIFTC_CON ) );
+    printf("GATE CODE = 0x%08X\r\n", ReadIO32( &pReg_DDRPHY->OFFSETC_CON[0] ) );
+
+    printf("Read  DQ  = 0x%08X\r\n", ReadIO32( &pReg_DDRPHY->OFFSETR_CON[0] ) );
+    printf("Write DQ  = 0x%08X\r\n", ReadIO32( &pReg_DDRPHY->OFFSETW_CON[0] ) );
+
     printf("\r\n\r\n");
 }

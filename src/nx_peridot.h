@@ -30,6 +30,8 @@
 #define Mode_ABT                0x17
 #define Mode_UNDEF              0x1B
 #define Mode_SYS                0x1F
+#define Mode_HYP                0x1A
+#define Mode_MON                0x16
 
 #define A_Bit                   (1<<8)              //; when A bit is set, Abort is disabled
 #define I_Bit                   (1<<7)              //; when I bit is set, IRQ is disabled

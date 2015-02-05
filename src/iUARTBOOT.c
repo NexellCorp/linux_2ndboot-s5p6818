@@ -17,18 +17,8 @@
 //					Hans 2013.08.24 Uart Port Selectable Feature Add
 //					Hans 2014.02.23 change to new uart device.
 ////////////////////////////////////////////////////////////////////////////////
-#include <nx_peridot.h>
-//#include "nx_peridot_bootoption.h"
-#include <nx_type.h>
-#include <nx_debug2.h>
 
-#include <nx_chip.h>
-
-#include <nx_gpio.h>
-#include <nx_clkgen.h>
-#include <nx_uart.h>
-#include "secondboot.h"
-//#include "nx_peridot_bootheader.h"
+#include "sysHeader.h"
 
 //------------------------------------------------------------------------------
 #define SOURCE_CLOCK	NX_CLKSRCPLL1_FREQ

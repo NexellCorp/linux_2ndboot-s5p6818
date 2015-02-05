@@ -16,24 +16,9 @@
 //	History		:
 //					Hans: 2014.01.12 First implementation
 ////////////////////////////////////////////////////////////////////////////////
-#if 1
+
 #include "sysHeader.h"
 #include <nx_ssp.h>
-
-#else
-#include <nx_peridot.h>
-//#include "nx_peridot_bootoption.h"
-#include <nx_type.h>
-#include <nx_debug2.h>
-
-#include <nx_chip.h>
-
-#include <nx_gpio.h>
-#include <nx_clkgen.h>
-#include <nx_ssp.h>
-#include "secondboot.h"
-//#include "nx_peridot_bootheader.h"
-#endif
 
 //------------------------------------------------------------------------------
 

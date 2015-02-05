@@ -939,7 +939,7 @@ CBOOL	NX_SDMMC_ReadSectors( SDXCBOOTSTATUS * pSDXCBootStatus, U32 SectorNum, U32
 
 	NX_ASSERT( 0==((U32)pdwBuffer & 3) );
 
-	while(pSDXCReg->STATUS & (1<<9 | 1<<10));		// wait while data busy or data transfer busy
+	while(pSDXCReg->STATUS & (NX_SDXC_STATUS_DATABUSY | NX_SDXC_STATUS_FSMBUSY));		// wait while data busy or data transfer busy
 
 	//--------------------------------------------------------------------------
 	// wait until 'Ready for data' is set and card is in transfer state.
@@ -1132,7 +1132,8 @@ void NX_SDPADSetALT(U32 PortNum)
 		pReg_GPIO[GPIO_GROUP_A]->GPIOx_DRV1_DISABLE_DEFAULT |= 5<<29;
 		pReg_GPIO[GPIO_GROUP_A]->GPIOx_PULLSEL |= 5<<29;
 		pReg_GPIO[GPIO_GROUP_A]->GPIOx_PULLSEL_DISABLE_DEFAULT |= 5<<29;
-		pReg_GPIO[GPIO_GROUP_A]->GPIOx_PULLENB |= 5<<29;
+//		pReg_GPIO[GPIO_GROUP_A]->GPIOx_PULLENB |= 5<<29;
+		pReg_GPIO[GPIO_GROUP_A]->GPIOx_PULLENB |= 4<<29;		// clk is not pull-up.
 		pReg_GPIO[GPIO_GROUP_A]->GPIOx_PULLENB_DISABLE_DEFAULT |= 5<<29;
 
 		pReg_GPIO[GPIO_GROUP_B]->GPIOx_SLEW &= ~(0x55<<1);
@@ -1158,26 +1159,29 @@ void NX_SDPADSetALT(U32 PortNum)
 		pReg_GPIO[GPIO_GROUP_D]->GPIOx_DRV1_DISABLE_DEFAULT |= 0x3F<<22;
 		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLSEL |= 0x3F<<22;
 		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLSEL_DISABLE_DEFAULT |= 0x3F<<22;
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLENB |= 0x3F<<22;
+//		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLENB |= 0x3F<<22;
+		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLENB |= 0x3E<<22;		// clk is not pull-up.
 		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLENB_DISABLE_DEFAULT |= 0x3F<<22;
 	}
 	else
 	{
 		register U32 *pGPIOCRegA1 = (U32 *)&pReg_GPIO[GPIO_GROUP_C]->GPIOxALTFN[1];	// c 18, 19, 20, 21, 22, 23
 		*pGPIOCRegA1 = (*pGPIOCRegA1 & ~0x0000FFF0) | 0x0000AAA0;	// all alt is 2
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_SLEW &= ~(0x3F<<18);
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_SLEW_DISABLE_DEFAULT |= 0x3F<<18;
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_DRV0 |= 0x3F<<18;
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_DRV0_DISABLE_DEFAULT |= 0x3F<<18;
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_DRV1 |= 0x3F<<18;
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_DRV1_DISABLE_DEFAULT |= 0x3F<<18;
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLSEL |= 0x3F<<18;
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLSEL_DISABLE_DEFAULT |= 0x3F<<18;
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLENB |= 0x3F<<18;
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLENB_DISABLE_DEFAULT |= 0x3F<<18;
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_SLEW &= ~(0x3F<<18);
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_SLEW_DISABLE_DEFAULT |= 0x3F<<18;
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_DRV0 |= 0x3F<<18;
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_DRV0_DISABLE_DEFAULT |= 0x3F<<18;
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_DRV1 |= 0x3F<<18;
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_DRV1_DISABLE_DEFAULT |= 0x3F<<18;
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_PULLSEL |= 0x3F<<18;
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_PULLSEL_DISABLE_DEFAULT |= 0x3F<<18;
+//		pReg_GPIO[GPIO_GROUP_C]->GPIOx_PULLENB |= 0x3F<<18;
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_PULLENB |= 0x3E<<18;		// clk is not pull-up.
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_PULLENB_DISABLE_DEFAULT |= 0x3F<<18;
 	}
 }
 
+#if 0
 void NX_SDPADSetGPIO(U32 PortNum)
 {
 	if(PortNum == 0)
@@ -1227,18 +1231,19 @@ void NX_SDPADSetGPIO(U32 PortNum)
 	{
 		register U32 *pGPIOCRegA1 = (U32 *)&pReg_GPIO[GPIO_GROUP_C]->GPIOxALTFN[1];
 		*pGPIOCRegA1 = (*pGPIOCRegA1 & ~0x0000FFF0) | 0x00005550;	// all gpio is 1
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_SLEW |= 0x3F<<18;
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_SLEW_DISABLE_DEFAULT |= 0x3F<<18;
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_DRV0 &= ~(0x3F<<18);
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_DRV0_DISABLE_DEFAULT |= 0x3F<<18;
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_DRV1 &= ~(0x3F<<18);
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_DRV1_DISABLE_DEFAULT |= 0x3F<<18;
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLSEL &= ~(0x3F<<18);
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLSEL_DISABLE_DEFAULT &= ~(0x3F<<18);
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLENB &= ~(0x3F<<18);
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLENB_DISABLE_DEFAULT &= ~(0x3F<<18);
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_SLEW |= 0x3F<<18;
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_SLEW_DISABLE_DEFAULT |= 0x3F<<18;
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_DRV0 &= ~(0x3F<<18);
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_DRV0_DISABLE_DEFAULT |= 0x3F<<18;
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_DRV1 &= ~(0x3F<<18);
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_DRV1_DISABLE_DEFAULT |= 0x3F<<18;
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_PULLSEL &= ~(0x3F<<18);
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_PULLSEL_DISABLE_DEFAULT &= ~(0x3F<<18);
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_PULLENB &= ~(0x3F<<18);
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_PULLENB_DISABLE_DEFAULT &= ~(0x3F<<18);
 	}
 }
+#endif
 
 //------------------------------------------------------------------------------
 U32	iSDXCBOOT( struct NX_SecondBootInfo * pTBI )
@@ -1268,7 +1273,7 @@ U32	iSDXCBOOT( struct NX_SecondBootInfo * pTBI )
 	NX_SDMMC_Terminate(pSDXCBootStatus);
 
 
-	NX_SDPADSetGPIO(pSDXCBootStatus->SDPort);
+//	NX_SDPADSetGPIO(pSDXCBootStatus->SDPort);
 
 	return result;
 }

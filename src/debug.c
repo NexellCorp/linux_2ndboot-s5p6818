@@ -112,6 +112,7 @@ CBOOL DebugInit( void )
 	pReg_UartClkGen->CLKENB	= (1<<3);								// PCLKMODE : always, Clock Gen Disable
 	pReg_UartClkGen->CLKGEN[0]	= ((SOURCE_DIVID-1)<<5) | (NX_CLKSRC_UART<<2);
 
+	//--------------------------------------------------------------------------
 	pReg_Uart->LCON		= 0x3;
 
 	pReg_Uart->UCON		= 0x113340;
@@ -126,6 +127,7 @@ CBOOL DebugInit( void )
 	pReg_UartClkGen->CLKENB	= (1<<3) | (1<<2);		// PCLKMODE : always, Clock Gen Enable
 
 	pReg_Uart->UCON		= 0x113345;
+	//--------------------------------------------------------------------------
 
 	return CTRUE;
 }

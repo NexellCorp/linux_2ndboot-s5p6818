@@ -16,12 +16,12 @@
 //	History		: 2013.02.06 First implementation
 //
 ////////////////////////////////////////////////////////////////////////////////
+
 #include "sysHeader.h"
 
 #include <nx_sdmmc.h>
 #include <iSDHCBOOT.h>
 #include <fatfs.h>
-
 
 #ifdef DEBUG
 #define dprintf(x, ...)	printf(x, ...)
@@ -31,6 +31,7 @@
 
 void ResetCon(U32 devicenum, CBOOL en);
 void GPIOSetAltFunction(U32 AltFunc);
+void NX_SDPADSetGPIO(U32 PortNum);
 
 extern U32 const SDResetNum[3];
 
@@ -108,7 +109,8 @@ CBOOL ProcessNSIH( FIL *file, U8 *pOutData )
 					writeval = 0;
 				}
 			}
-		}else
+		}
+		else
 			return CFALSE;
 	}
 
@@ -158,7 +160,8 @@ static CBOOL FSBoot(SDXCBOOTSTATUS * pSDXCBootStatus, struct NX_SecondBootInfo *
 								return CTRUE;
 							}
 							printf( "Error: NXDATA.TBL image read error\r\n" );
-						}else
+						}
+						else
 						{
 							printf( "Error: NXDATA.TBL read fail\r\n");
 						}
@@ -180,7 +183,8 @@ static CBOOL FSBoot(SDXCBOOTSTATUS * pSDXCBootStatus, struct NX_SecondBootInfo *
 		{
 			printf("Error: cannot open NXDATA.TBH\r\n");
 		}
-	}else
+	}
+	else
 	{
 		printf( "Error: disk mount failure\r\n" );
 	}
@@ -203,7 +207,8 @@ static	CBOOL	SDMMCFSBOOT( SDXCBOOTSTATUS * pSDXCBootStatus, struct NX_SecondBoot
 			while( pSDXCReg->CTRL & NX_SDXC_CTRL_FIFORST );		// Wait until the FIFO reset is completed.
 		}
 		result = FSBoot(pSDXCBootStatus, pTBI);
-	}else
+	}
+	else
 	{
 		printf( "Error: SDMMC open fail\r\n" );
 	}
@@ -233,7 +238,7 @@ U32	iSDXCFSBOOT( struct NX_SecondBootInfo * pTBI )
 	result = SDMMCFSBOOT(pSDXCBootStatus, pTBI);
 	NX_SDMMC_Terminate(pSDXCBootStatus);
 
-	NX_SDPADSetGPIO(pSDXCBootStatus->SDPort);
+//	NX_SDPADSetGPIO(pSDXCBootStatus->SDPort);
 
 	return result;
 }

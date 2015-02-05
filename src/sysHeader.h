@@ -82,12 +82,15 @@ struct NX_RSTCON_RegisterSet            * pReg_RstCon = (struct NX_RSTCON_Regist
 struct NX_DREXSDRAM_RegisterSet         * pReg_Drex = (struct NX_DREXSDRAM_RegisterSet *)PHY_BASEADDR_DREX_MODULE_CH0_APB;
 struct NX_DDRPHY_RegisterSet            * pReg_DDRPHY = (struct NX_DDRPHY_RegisterSet *)PHY_BASEADDR_DREX_MODULE_CH1_APB;
 #if defined(ARCH_NXP5430)
+struct NX_DREXTZ_RegisterSet            * pReg_DrexTZ = (struct NX_DREXTZ_RegisterSet *)PHY_BASEADDR_DREX_TZ_MODULE;
+struct NX_GIC400_RegisterSet            * pReg_GIC400 = (struct NX_GIC400_RegisterSet *)PHY_BASEADDR_INTC_MODULE;
 #endif
 
 U32 g_USBD_VID;
 U32 g_USBD_PID;
 
 #else
+
 extern struct NX_SecondBootInfo         * const pSBI;   // second boot info
 extern struct NX_SecondBootInfo         * const pTBI;   // third boot info
 extern struct NX_GPIO_RegisterSet      (* pReg_GPIO)[1];
@@ -100,6 +103,8 @@ extern struct NX_RSTCON_RegisterSet     * pReg_RstCon;
 extern struct NX_DREXSDRAM_RegisterSet  * pReg_Drex;
 extern struct NX_DDRPHY_RegisterSet     * pReg_DDRPHY;
 #if defined(ARCH_NXP5430)
+extern struct NX_DREXTZ_RegisterSet     * pReg_DrexTZ;
+extern struct NX_GIC400_RegisterSet     * pReg_GIC400;
 #endif
 
 extern U32 g_USBD_VID;
