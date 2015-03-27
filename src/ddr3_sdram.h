@@ -81,7 +81,7 @@ union SDRAM_MR
 	struct SDRAM_MR1 MR1;
 	struct SDRAM_MR2 MR2;
 	struct SDRAM_MR3 MR3;
-	volatile U32 Reg;
+	volatile U16 Reg;
 };
 
 #endif	// __NX_DDR3_SDRAM_H__

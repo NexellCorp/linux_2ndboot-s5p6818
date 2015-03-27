@@ -26,12 +26,13 @@ LDFLAGS		=	-Bstatic							\
 SYS_OBJS	=	startup.o secondboot.o				\
 			resetcon.o GPIO.o CRC32.o			\
 			clockinit.o debug.o lib2ndboot.o buildinfo.o	\
-			sysbus.o					\
 			printf.o
+SYS_OBJS	+=	sysbus.o
 SYS_OBJS	+=	MemoryInit.o
 #SYS_OBJS	+=	CRYPTO.o
 #SYS_OBJS	+=	nx_tieoff.o
 
+ifeq ($(BUILTINALL),n)
 ifeq ($(BOOTFROM),USB)
 SYS_OBJS	+=	iUSBBOOT.o
 endif
@@ -49,6 +50,14 @@ SYS_OBJS	+=	iNANDBOOTEC.o
 endif
 ifeq ($(BOOTFROM),UART)
 SYS_OBJS	+=	iUARTBOOT.o
+endif
+
+else ifeq ($(BUILTINALL),y)
+SYS_OBJS	+=	iUSBBOOT.o
+SYS_OBJS	+=	iSPIBOOT.o CRYPTO.o
+SYS_OBJS	+=	iSDHCBOOT.o diskio.o fatfs.o iSDHCFSBOOT.o
+SYS_OBJS	+=	iNANDBOOTEC.o
+#SYS_OBJS	+=	iUARTBOOT.o
 endif
 
 

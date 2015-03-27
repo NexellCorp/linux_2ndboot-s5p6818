@@ -120,11 +120,15 @@ typedef struct tag_NANDBOOTECSTATUS
 	U32		dwRowCur;
 	S32		iECCLeft;
 	S32		iSectorLeft;
+
+	U32		pReadDoneFlag[1024/32];		// each 1KB per 1bit, for total 1MB
 	U32 	pECCBASE[1024/4];
 } NANDBOOTECSTATUS;
 
 void GPIOSetAltFunction(U32 AltFunc);
 
+U32 getquotient(U32 dividend, U32 divisor);
+U32 iget_fcs(U32 fcs, U32 data);
 
 static struct NX_MCUS_RegisterSet * const pNandControl = (struct NX_MCUS_RegisterSet *)PHY_BASEADDR_MCUSTOP_MODULE;
 static struct NX_NAND_RegisterSet * const pNandAccess = (struct NX_NAND_RegisterSet *)BASEADDR_NFMEM;
@@ -153,17 +157,6 @@ static struct NX_NAND_RegisterSet * const pNandAccess = (struct NX_NAND_Register
 #define NX_BCH_VAR_R32		((NX_BCH_VAR_R		+31)/32)
 #define NX_BCH_VAR_RMAX32	((NX_BCH_VAR_RMAX	+31)/32)
 
-
-U32 divnx(U32 mk, U32 na)
-{
-	U32 i=0;
-	while(mk>=na)
-	{
-		mk-=na;
-		i++;
-	}
-	return i;
-}
 
 //------------------------------------------------------------------------------
 static S32	NX_NAND_GetErrorLocation( NANDBOOTECSTATUS *pBootStatus, U32 *pLocation )
@@ -252,7 +245,7 @@ static CBOOL	NANDFlash_Open( NANDBOOTECSTATUS *pBootStatus )
 	temp |= ((temp & NX_NFCTRL_EXSEL_R)>>1);
 	temp &= ~ (NX_NFCTRL_HWBOOT_W);
 
-	pagesize = pSBI->DBI.NANDBI.PageSize;
+	pagesize = pSBI->DBI.NANDBI.PageSize * 512;
 
 	if( pagesize > 512  )
 	{
@@ -279,7 +272,7 @@ static CBOOL	NANDFlash_Open( NANDBOOTECSTATUS *pBootStatus )
 
 	printf("Device Address:0x%08X, Page Size:0x%08X\r\n", pSBI->DEVICEADDR, pagesize);
 	//--------------------------------------------------------------------------
-	pBootStatus->dwRowCur 			= divnx(pSBI->DEVICEADDR, pagesize);			// base page address of NAND flash memory
+	pBootStatus->dwRowCur 			= getquotient(pSBI->DEVICEADDR, pagesize);			// base page address of NAND flash memory
 
 	printf("Start Page Address:0x%08X\r\n", pBootStatus->dwRowCur);
 	pBootStatus->iSectorLeft		= 0;
@@ -297,8 +290,8 @@ static CBOOL	NANDFlash_Open( NANDBOOTECSTATUS *pBootStatus )
 
 	// Wait until RnB is 1
 	temp = PENDDELAY;
-	while( 0==(pNandControl->NFCONTROL & NX_NFCTRL_RNB) && temp-- );
-	if(temp == (U32)-1)
+	while( 0 == (pNandControl->NFCONTROL & NX_NFCTRL_RNB) && --temp );
+	if(temp == 0)
 		return CFALSE;
 
 	//--------------------------------------------------------------------------
@@ -315,8 +308,8 @@ static CBOOL	NANDFlash_Open( NANDBOOTECSTATUS *pBootStatus )
 
 		temp = PENDDELAY;
 		// Wait until ready by using NX_NFCTRL_IRQPEND which is set at rising edge of RnB.
-		while( 0==(pNandControl->NFCONTROL & NX_NFCTRL_IRQPEND) && temp-- );
-		if(temp == (U32)-1)
+		while( 0 == (pNandControl->NFCONTROL & NX_NFCTRL_IRQPEND) && --temp );
+		if(temp == 0)
 			return CFALSE;
 	}
 	return CTRUE;
@@ -339,12 +332,12 @@ static CBOOL	NANDFlash_SetAddr( NANDBOOTECSTATUS *pBootStatus )
 {
 	register U32 temp;
 	// check for changing page
-	dprintf("iSectorLeft:0x%08X\r\n", pBootStatus->iSectorLeft);
+	dprintf("iSectorLeft:%d\r\n", pBootStatus->iSectorLeft);
 	if( pBootStatus->iSectorLeft == 0 )
 	{
 		U32	row			= pBootStatus->dwRowCur;
 
-		dprintf("row:0x%08X\r\n", row);
+		dprintf("row:0x%8X\r\n", row);
 		temp = pNandControl->NFCONTROL;
 		temp &= ~ (NX_NFCTRL_EXSEL_W);
 		temp |= (((temp & NX_NFCTRL_EXSEL_R)>>1) | NX_NFCTRL_IRQPEND);		// Clear NX_NFCTRL_IRQPEND
@@ -354,21 +347,21 @@ static CBOOL	NANDFlash_SetAddr( NANDBOOTECSTATUS *pBootStatus )
 		pNandAccess->NFCMD = NAND_CMD_READ_1ST;
 
 		pNandAccess->NFADDR = 0;				// COL 1st
-		if(pSBI->DBI.NANDBI.AddrStep > 3 && pSBI->DBI.NANDBI.PageSize != 512)
+		if((pSBI->DBI.NANDBI.AddrStep > 3) && (pSBI->DBI.NANDBI.PageSize != 1))
 		{
 			dprintf("COL 2nd\r\n");
 			pNandAccess->NFADDR = 0;				// COL 2nd
 		}
 			pNandAccess->NFADDR = (U8)(row >>  0);	// ROW 1st
 			pNandAccess->NFADDR = (U8)(row >>  8);	// ROW 2nd
-		if(( pSBI->DBI.NANDBI.AddrStep > 3 && pSBI->DBI.NANDBI.PageSize == 512 )||
-			( pSBI->DBI.NANDBI.AddrStep > 4 && pSBI->DBI.NANDBI.PageSize > 512 ))
+		if(( pSBI->DBI.NANDBI.AddrStep > 3 && pSBI->DBI.NANDBI.PageSize == 1 )||
+			( pSBI->DBI.NANDBI.AddrStep > 4 && pSBI->DBI.NANDBI.PageSize > 1 ))
 		{
 			dprintf("ROW 3rd\r\n");
 			pNandAccess->NFADDR = (U8)(row >> 16);	// ROW 3rd
 		}
 
-		if( pSBI->DBI.NANDBI.PageSize > 512 )	// Large block
+		if( pSBI->DBI.NANDBI.PageSize > 1 )	// Large block
 		{
 			dprintf("Large block cmd\r\n");
 			pNandAccess->NFCMD = NAND_CMD_READ_2ND;
@@ -376,8 +369,8 @@ static CBOOL	NANDFlash_SetAddr( NANDBOOTECSTATUS *pBootStatus )
 
 		// Wait until ready by using NX_NFCTRL_IRQPEND which is set at rising edge of RnB.
 		temp = PENDDELAY;
-		while( 0==(pNandControl->NFCONTROL & NX_NFCTRL_IRQPEND) && temp-- );
-		if(temp == (U32)-1)
+		while( 0 == (pNandControl->NFCONTROL & NX_NFCTRL_IRQPEND) && --temp );
+		if(temp == 0)
 			return CFALSE;
 
 		pBootStatus->iSectorLeft = pBootStatus->iSectorsPerPage;
@@ -390,7 +383,9 @@ static CBOOL	NANDFlash_SetAddr( NANDBOOTECSTATUS *pBootStatus )
 static void		NANDFlash_ReadData( NANDBOOTECSTATUS *pBootStatus, U32 *pData )
 {
 	register U32 temp;
-//	U32 i, *psave = pData;
+#if 0
+	U32 *psave = pData, i;
+#endif
 
 	// run ecc
 	pNandControl->NFECCCTRL =											 1<<NX_NFECCCTRL_RUNECC_W   |	   // run ecc
@@ -418,23 +413,22 @@ static void		NANDFlash_ReadData( NANDBOOTECSTATUS *pBootStatus, U32 *pData )
 	}
 #if 0
 	temp = pBootStatus->dwSectorSize/4;
-	dprintf( "Read Data is:" );
+	printf( "Read Data is:" );
 	for( i=0; i<temp; i++ )
 	{
 		if(i%4 == 0)
-			dprintf( "\r\n" );
-		dprintf("0x%08X ", psave[i]);
+			printf( "\r\n" );
+		printf("0x%08X ", psave[i]);
 	}
-	dprintf( "\r\n" );
+	printf( "\r\n" );
 #endif
 	pBootStatus->iSectorLeft--;
 }
 
 //------------------------------------------------------------------------------
-static CBOOL	NANDFlash_ReadSector( NANDBOOTECSTATUS *pBootStatus, U32 *pData )
+static CBOOL	NANDFlash_ReadSector( NANDBOOTECSTATUS *pBootStatus, U32 *pData, CBOOL DataUse )
 {
 	register U32 temp;
-//	U16	syndrome[NX_BCH_VAR_T];
 	//--------------------------------------------------------------------------
 	// Copy ECCs from SRAM to H/W BCH decoder
 	if( pBootStatus->iECCLeft == 0 )
@@ -466,37 +460,23 @@ static CBOOL	NANDFlash_ReadSector( NANDBOOTECSTATUS *pBootStatus, U32 *pData )
 
 	NANDFlash_ReadData( pBootStatus, pData );
 
+	if(CFALSE == DataUse)
+		return CFALSE;
+
 	//--------------------------------------------------------------------------
 	// Determines whether or not there's an error in data by using H/W BCH decoder.
 	// Wait until H/W BCH decoder has been finished.
 	temp = PENDDELAY;
-	while( 0==(pNandControl->NFECCSTATUS & NX_NFECCSTATUS_DECDONE) && temp-- );
-	if(temp == (U32)-1)
+	while( 0 == (pNandControl->NFECCSTATUS & NX_NFECCSTATUS_DECDONE) && --temp );
+	if(temp == 0)
 		return CFALSE;
-#if 0
-	for(temp = 0; temp<NX_BCH_VAR_T/2; temp++)
-	{
-		syndrome[temp+0] = pNandControl->NFSYNDROME[temp] & 0x0000FFFF<< 0;
-		syndrome[temp+1] = pNandControl->NFSYNDROME[temp] & 0xFFFF0000>>16;
-	}
-#endif
+
+
 	pNandControl->NFECCAUTOMODE = (pNandControl->NFECCAUTOMODE & ~(NX_NFACTRL_ELP | NX_NFACTRL_SYN));	// connect syndrome path
 
 	// Check an error status of H/W BCH decoder.
 	if( pNandControl->NFECCSTATUS & NX_NFECCSTATUS_ERROR )
 	{
-#if 0
-		dprintf( "-> %d page, %d sector :\r\nSyndrome: ",
-			pBootStatus->dwRowCur-1, pBootStatus->iSectorsPerPage - pBootStatus->iSectorLeft - 1 );
-
-		for(temp = 0; temp < pBootStatus->iNX_BCH_VAR_T; temp++)
-		{
-			if(temp%8 == 0)
-				dprintf( "\r\n" );
-			dprintf("%04X, ", syndrome[temp] );
-		}
-		dprintf( "\r\n" );
-#endif
 		// load elp
 		pNandControl->NFECCCTRL =											 0<<NX_NFECCCTRL_RUNECC_W   |
 																			 1<<NX_NFECCCTRL_ELPLOAD    |	   // load elp
@@ -506,8 +486,8 @@ static CBOOL	NANDFlash_ReadSector( NANDBOOTECSTATUS *pBootStatus, U32 *pData )
 										 ((pBootStatus->dwSectorSize-1)&0x3FF)<<NX_NFECCCTRL_DATACNT;
 
 		temp = PENDDELAY;
-		while(pNandControl->NFECCSTATUS & NX_NFECCSTATUS_BUSY);
-		if(temp == (U32)-1)
+		while((pNandControl->NFECCSTATUS & NX_NFECCSTATUS_BUSY) && --temp );
+		if(temp == 0)
 			return CFALSE;
 
 		if(CFALSE == CorrectErrors( pBootStatus, pData ))
@@ -522,11 +502,10 @@ static CBOOL	NANDFlash_ReadSector( NANDBOOTECSTATUS *pBootStatus, U32 *pData )
 //------------------------------------------------------------------------------
 CBOOL	iNANDBOOTEC( struct NX_SecondBootInfo * pTBI )
 {
-	CBOOL Result = CTRUE;
-	U32 dwBinAddr;
-	S32 iBinSecLeft;
+	CBOOL Result = CTRUE, isRescueBoot = CFALSE;
+	U32 dwBinAddr, iBinSecLeft;
 	NANDBOOTECSTATUS BootStatus, *pBootStatus;
-	U32 TBI[1024/4];;
+	U32 TBI[1024/4], temp[1024/4];
 	struct NX_SecondBootInfo * plTBI = (struct NX_SecondBootInfo *)TBI;
 	pBootStatus = &BootStatus;
 
@@ -547,8 +526,6 @@ CBOOL	iNANDBOOTEC( struct NX_SecondBootInfo * pTBI )
 	pNandControl->NFTOCH = pSBI->DBI.NANDBI.tOCH;
 	pNandControl->NFTCAH = 0xF;
 
-//	pReg_GPIO[1]->GPIOxALTFN[1] = (pReg_GPIO[1]->GPIOxALTFN[1] & ~0x00000033) | 0x00000011;		// B 16, 18 ALT1
-//	pNandControl->NFCONTROL = (pNandControl->NFCONTROL & ~(NX_NFCTRL_BANK | NX_NFCTRL_HWBOOT_W | NX_NFCTRL_EXSEL_W)) | 0x01;	// nNSCS1
 	pReg_GPIO[1]->GPIOxALTFN[1] &= ~0x00000033;		// B 16, 18 ALT0
 	pNandControl->NFCONTROL = (pNandControl->NFCONTROL & ~(NX_NFCTRL_BANK | NX_NFCTRL_HWBOOT_W | NX_NFCTRL_EXSEL_W)) | 0x00;	// nNSCS0
 
@@ -558,25 +535,114 @@ CBOOL	iNANDBOOTEC( struct NX_SecondBootInfo * pTBI )
 
 	if(NANDFlash_Open(pBootStatus))
 	{
-		if( CTRUE == NANDFlash_ReadSector( pBootStatus, (U32 *)plTBI ) )
+		U32 ImageIndex, imax;
+RescueBoot:
+		imax = pSBI->DBI.NANDBI.CopyCount;
+		printf("copy count : %d\r\n", imax);
+		for(ImageIndex=0; ImageIndex<(1024/32); ImageIndex++)
+			pBootStatus->pReadDoneFlag[ImageIndex] = 0;
+
+		for(ImageIndex=0; ImageIndex<imax; ImageIndex++)	// for load NSIH
 		{
-			if(plTBI->SIGNATURE == HEADER_ID)
+			pBootStatus->dwRowCur		= getquotient(pSBI->DEVICEADDR + ((U32)pSBI->DBI.NANDBI.TIOffset*(ImageIndex<<20)),
+														(U32)pSBI->DBI.NANDBI.PageSize * 512);			// base page address of NAND flash memory
+			printf("NSIH row current address: 0x%X\r\n", pBootStatus->dwRowCur);
+			pBootStatus->iSectorLeft	= 0;
+			pBootStatus->iECCLeft		= 0;
+
+			if( NANDFlash_ReadSector( pBootStatus, (U32 *)plTBI, CTRUE ) )
 			{
-				printf("Load Address:0x%08X\r\nLoad Size:0x%08X\r\n", plTBI->LOADADDR, plTBI->LOADSIZE);
+				printf("NSIH read done\r\r\n");
+				break;
+			}
+		}
+
+		if(ImageIndex<imax)
+		{
+			if(HEADER_ID == plTBI->SIGNATURE)
+			{
+				U32 sum;
+
+				printf("Load Address:0x%08X\r\nLoad Size:0x%08X(%d)\r\n", plTBI->LOADADDR, plTBI->LOADSIZE, plTBI->LOADSIZE);
 
 				dwBinAddr	= plTBI->LOADADDR;
-				iBinSecLeft	= divnx((plTBI->LOADSIZE + pBootStatus->dwSectorSize-1), pBootStatus->dwSectorSize);
+//				dwBinAddr	= 0x40100000;
+				iBinSecLeft	= getquotient((plTBI->LOADSIZE + pBootStatus->dwSectorSize-1), pBootStatus->dwSectorSize);
+				printf("sector count:%d, Sector Size:%X(%d)\r\n", iBinSecLeft, pBootStatus->dwSectorSize, pBootStatus->dwSectorSize);
+				sum = iBinSecLeft;
 
-				while( iBinSecLeft-- )
+				for( ImageIndex=0; ImageIndex<imax; ImageIndex++ )
 				{
-					if( CFALSE == NANDFlash_ReadSector( pBootStatus, (U32 *)dwBinAddr ) )
+					U32 iSectorIndex;
+					if(ImageIndex>=1)
 					{
-						Result = CFALSE;
+						pBootStatus->dwRowCur		= getquotient(pSBI->DEVICEADDR + ((U32)pSBI->DBI.NANDBI.TIOffset*(ImageIndex<<20)),
+																(U32)pSBI->DBI.NANDBI.PageSize * 512);			// base page address of NAND flash memory
+
+						printf("row current address: 0x%X\r\n", pBootStatus->dwRowCur);
+						pBootStatus->iSectorLeft	= 0;
+						pBootStatus->iECCLeft		= 0;
+
+						printf("NSIH read skip in first copy\r\n");
+						NANDFlash_ReadSector( pBootStatus, temp, CFALSE );	// for NSIH area
+					}
+
+					printf("temporary data read done, read image start\r\n");
+					for(iSectorIndex=0; iSectorIndex<iBinSecLeft; iSectorIndex++)
+					{
+						U32 *pBuf;
+						CBOOL UsingFlag;
+
+//						printf("sector index : %d\r\n", iSectorIndex);
+						if(pBootStatus->pReadDoneFlag[iSectorIndex>>5] & 1<<(iSectorIndex & 0x1F))
+						{
+							pBuf = temp;
+							UsingFlag = CFALSE;
+						}
+						else
+						{
+							pBuf = (U32*)(dwBinAddr+pBootStatus->dwSectorSize*iSectorIndex);
+							UsingFlag = CTRUE;
+						}
+						if(UsingFlag && ImageIndex != 0)
+							printf("%d : 0x%08X, %d\r\n", iSectorIndex, pBuf, UsingFlag);
+						if( CTRUE == NANDFlash_ReadSector( pBootStatus, pBuf, UsingFlag) )
+				{
+							pBootStatus->pReadDoneFlag[iSectorIndex>>5] |= 1<<(iSectorIndex&0x1F);
+							sum--;
+						}
+					}
+					if(sum == 0)
+					{
+						printf("image loading done\r\n");
 						break;
 					}
-					dwBinAddr += pBootStatus->dwSectorSize;
 				}
 				pTBI->LAUNCHADDR = plTBI->LAUNCHADDR;
+//				pTBI->LAUNCHADDR = 0x40100000;
+				if(sum)
+					Result = CFALSE;
+				else
+				{
+					U32 j, fcs = 0, *pdata = (U32*)dwBinAddr;
+					for(j=0; j<(plTBI->LOADSIZE)>>2; j++)
+					{
+						U32 crcdata;
+						crcdata = *pdata++;
+						fcs = iget_fcs(fcs, crcdata);
+//						if((j % 8) == 0 )
+//							printf("\r\n");
+//						printf("%08X ", crcdata);
+					}
+					if(fcs != plTBI->DBI.NANDBI.CRC32)
+					{
+						printf("Image CRC check failure (%X:%X)\r\n", plTBI->DBI.NANDBI.CRC32, fcs );
+						Result = CFALSE;
+					}else
+					{
+						printf("Image CRC check success (%X:%X)\r\n", plTBI->DBI.NANDBI.CRC32, fcs );
+					}
+				}
 			}
 			else
 			{
@@ -589,12 +655,24 @@ CBOOL	iNANDBOOTEC( struct NX_SecondBootInfo * pTBI )
 			printf("cannot read boot header! nand boot failure\r\n");
 			Result = CFALSE;
 		}
+		if(CFALSE == Result)
+		{
+			if(CFALSE == isRescueBoot)
+			{
+				printf("normal nand boot failure, try to rescue boot\r\n");
+				pSBI->DEVICEADDR = 32*0x100000;	// 0: 2ndboot, 32MB: rescue boot, 64MB: normal 3rdboot
+				Result = CTRUE;
+				isRescueBoot = CTRUE;
+				goto RescueBoot;
+			}
+		}
 	}else
 	{
-		printf("nand open failure! nand is not work or not exist\r\n");
+		printf("nand open failure! nand does not work or not exist\r\n");
 		Result = CFALSE;
 	}
 	NANDFlash_Close();
+
 
 	pNandControl->NFCONTROL = (pNandControl->NFCONTROL & ~(NX_NFCTRL_BANK | NX_NFCTRL_HWBOOT_W | NX_NFCTRL_EXSEL_W)) | 0x00;	// nNSCS0, Select SD bus
 

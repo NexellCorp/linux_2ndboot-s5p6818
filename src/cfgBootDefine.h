@@ -43,6 +43,7 @@
 //------------------------------------------------------------------------------
 //  System optional.
 //------------------------------------------------------------------------------
+#define MULTICORE_SLEEP_CONTROL     (1)
 #define MULTICORE_BRING_UP          (1)
 #define CCI400_COHERENCY_ENABLE     (1)
 

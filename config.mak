@@ -1,18 +1,19 @@
 ###########################################################################
 # Build Version info
 ###########################################################################
-VERINFO				= V023
+VERINFO				= V030
 
 ###########################################################################
 # Build Environment
 ###########################################################################
 DEBUG				= n
+BUILTINALL			= n
 
 CHIPNAME			= S5P6818
 
-BOOTFROM			= USB
+#BOOTFROM			= USB
 #BOOTFROM			= SPI
-#BOOTFROM			= SDMMC
+BOOTFROM			= SDMMC
 #BOOTFROM			= SDFS
 #BOOTFROM			= NAND
 #BOOTFROM			= UART
@@ -36,7 +37,11 @@ endif
 # Top Names
 ###########################################################################
 PROJECT_NAME			= $(CHIPNAME)_2ndboot
+ifeq ($(BUILTINALL),n)
 TARGET_NAME			= $(PROJECT_NAME)_$(VERINFO)$(BOARD)_$(BOOTFROM)
+else ifeq ($(BUILTINALL),y)
+TARGET_NAME			= $(PROJECT_NAME)_$(VERINFO)
+endif
 LDS_NAME			= peridot_2ndboot
 
 
@@ -46,19 +51,27 @@ LDS_NAME			= peridot_2ndboot
 DIR_PROJECT_TOP			=
 
 DIR_OBJOUTPUT			= obj
+ifeq ($(BUILTINALL),n)
 DIR_TARGETOUTPUT		= build$(BOARD)_$(BOOTFROM)
+else ifeq ($(BUILTINALL),y)
+DIR_TARGETOUTPUT		= build$(BOARD)
+endif
 
 CODE_MAIN_INCLUDE		=
 
 ###########################################################################
 # Build Environment
 ###########################################################################
-CPU				= cortex-a9
+ARCH				= armv7-a
+#ARCH				= cortex-a53
+#CPU				= cortex-a15
+CPU				= cortex-a53
 CC				= $(CROSS_TOOL)gcc
 LD 				= $(CROSS_TOOL)ld
 AS 				= $(CROSS_TOOL)as
 AR 				= $(CROSS_TOOL)ar
 MAKEBIN				= $(CROSS_TOOL)objcopy
+BOJCOPY				= $(CROSS_TOOL)objcopy
 RANLIB 				= $(CROSS_TOOL)ranlib
 
 GCC_LIB				= $(shell $(CC) -print-libgcc-file-name)

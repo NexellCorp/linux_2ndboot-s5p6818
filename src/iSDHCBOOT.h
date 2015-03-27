@@ -96,7 +96,7 @@
 #define SET_BLOCKLEN			((16) | ((NX_SDMMC_RSPIDX_R1	)<<8))
 #define READ_SINGLE_BLOCK		((17) | ((NX_SDMMC_RSPIDX_R1	)<<8))
 #define READ_MULTIPLE_BLOCK		((18) | ((NX_SDMMC_RSPIDX_R1	)<<8))
-#define WRITE_BLOCK				((24) | ((NX_SDMMC_RSPIDX_R1	)<<8))
+#define WRITE_SINGLE_BLOCK		((24) | ((NX_SDMMC_RSPIDX_R1	)<<8))
 #define WRITE_MULTIPLE_BLOCK	((25) | ((NX_SDMMC_RSPIDX_R1	)<<8))
 #define SELECT_PARTITION		((43) | ((NX_SDMMC_RSPIDX_R1B	)<<8))	// for eSD
 #define APP_CMD					((55) | ((NX_SDMMC_RSPIDX_R1	)<<8))
@@ -123,7 +123,9 @@
 #define EXT_CSD_BOOT_MULT				226	/* RO */
 
 #define EXT_CSD_BOOT_CONFIG 			179 /* R/W */
-#define EXT_CSD_BOOT_BUS_WIDTH  		177 /*R/W */
+#define EXT_CSD_BOOT_BUS_WIDTH  		177 /* R/W */
+#define EXT_CSD_BOOT_WP_STATUS			174	/* RO */
+#define EXT_CSD_BOOT_WRITE_PROTECTION	173	/* R/W */
 
 // EXT_CSD field definitions
 #define EXT_CSD_CMD_SET_NORMAL		(1 << 0)
@@ -140,13 +142,21 @@
  #define EXT_CSD_NO_BOOT					(0<<6)
  #define EXT_CSD_BOOT_ACK					(1<<6)
 
- #define EXT_CSD_BOOT_PARTITION_NOT_ENABLE	(0x0<<3)
- #define EXT_CSD_BOOT_PARTITION_1_ENABLE	(0x1<<3)
- #define EXT_CSD_BOOT_PARTITION_2_ENABLE	(0x2<<3)
+ #define EXT_CSD_BOOT_PARTITION_ACCESS_ENABLE_NUM(n)    ((n<<3) | n)
 
- #define EXT_CSD_BOOT_PARTITION_NO_ACCESS	(0x0)
- #define EXT_CSD_BOOT_PARTITION_1_ACCESS	(0x1)
- #define EXT_CSD_BOOT_PARTITION_2_ACCESS	(0x2)
+ #define EXT_CSD_BOOT_PARTITION_NOT_ENABLE      (0x0<<3)
+ #define EXT_CSD_BOOT_PARTITION_1_ENABLE        (0x1<<3)
+ #define EXT_CSD_BOOT_PARTITION_2_ENABLE        (0x2<<3)
+ #define EXT_CSD_BOOT_PARTITION_3_ENABLE        (0x3<<3)
+ #define EXT_CSD_BOOT_PARTITION_4_ENABLE        (0x4<<3)
+ #define EXT_CSD_BOOT_PARTITION_ENABLE_NUM(n)   (n<<3)
+
+ #define EXT_CSD_BOOT_PARTITION_NO_ACCESS       (0x0)
+ #define EXT_CSD_BOOT_PARTITION_1_ACCESS        (0x1)
+ #define EXT_CSD_BOOT_PARTITION_2_ACCESS        (0x2)
+ #define EXT_CSD_BOOT_PARTITION_3_ACCESS        (0x3)
+ #define EXT_CSD_BOOT_PARTITION_4_ACCESS        (0x4)
+ #define EXT_CSD_BOOT_PARTITION_ACCESS_NUM(n)   (n)
 
  #define EXT_CSD_BOOT_BUS_WIDTH_1			(0x0)
  #define EXT_CSD_BOOT_BUS_WIDTH_4			(0x1)

@@ -21,11 +21,11 @@
 #define __SET_GLOBAL_VARIABLES
 #include "sysHeader.h"
 
-#include <nx_cci400.h>
-#include <nx_gic400.h>
 
 
+#define EMA_VALUE           (1)     // Manual setting - 1: 1.1V, 3: 1.0V, 4: 0.95V
 
+extern void     __pllchange(volatile U32 data, volatile U32* addr, U32 delaycount);
 extern U32      iget_fcs(U32 fcs, U32 data);
 extern U32      __calc_crc(void *addr, int len);
 extern void     DMC_Delay(int milisecond);
@@ -46,12 +46,17 @@ extern CBOOL    iNANDBOOTEC(struct NX_SecondBootInfo * const pTBI);
 extern CBOOL    iSDXCFSBOOT(struct NX_SecondBootInfo * const pTBI);
 extern void     initClock(void);
 extern void     initDDR3(U32);
-extern void     buildinfo(void);
+extern CBOOL    buildinfo(void);
 
 extern void     printClkInfo(void);
 
 extern void     ResetCon(U32 devicenum, CBOOL en);
 
+extern U32  g_WR_lvl;
+extern U32  g_GT_cycle;
+extern U32  g_GT_code;
+extern U32  g_RD_vwmc;
+extern U32  g_WR_vwmc;
 
 //------------------------------------------------------------------------------
 static void dowakeup(void)
@@ -153,6 +158,7 @@ void SubCPUBoot( U32 CPUID )
     WriteIO32( &pReg_GIC400->GICC.CTLR,         0x07 );     // enable cpu interface
     WriteIO32( &pReg_GIC400->GICC.PMR,          0xFF );     // all high priority
     WriteIO32( &pReg_GIC400->GICD.ISENABLER[0], 0xFF );     // enable sgi all
+    WriteIO32( &pReg_ClkPwr->CPUPOWERONREQ,     0x00 );     // clear own wakeup req bit
 
 //    printf("Hello World. I'm CPU %d!\r\n", CPUID);
     DebugPutch('0'+CPUID);
@@ -162,35 +168,99 @@ void SubCPUBoot( U32 CPUID )
 }
 
 
-struct NX_CLKPWR_RegisterSet * const clkpwr;
-void sleepMain( void )
+void vddPowerOff( void )
 {
-//    WriteIO32( &clkpwr->PLLSETREG[1],   0x100CC801 );       //; set PLL1 - 800Mhz
-    WriteIO32( &clkpwr->PLLSETREG[1],   0x100CC802 );       //; set PLL1 - 400Mhz
+#if (MULTICORE_SLEEP_CONTROL == 1)
+    WriteIO32( &pReg_ClkPwr->CPUWARMRESETREQ,       0x0 );              //; clear for reset issue.
 
-    DebugInit();
-    enterSelfRefresh();
+    WriteIO32( &pReg_Alive->ALIVEPWRGATEREG,        0x00000001 );       //; alive power gate open
+
+    //----------------------------------
+    // Save leveling & training values.
+#if 1
+    WriteIO32(&pReg_Alive->ALIVESCRATCHRST5,        0xFFFFFFFF);        // clear - ctrl_shiftc
+    WriteIO32(&pReg_Alive->ALIVESCRATCHRST6,        0xFFFFFFFF);        // clear - ctrl_offsetC
+    WriteIO32(&pReg_Alive->ALIVESCRATCHRST7,        0xFFFFFFFF);        // clear - ctrl_offsetr
+    WriteIO32(&pReg_Alive->ALIVESCRATCHRST8,        0xFFFFFFFF);        // clear - ctrl_offsetw
+
+    WriteIO32(&pReg_Alive->ALIVESCRATCHSET5,        g_GT_cycle);        // store - ctrl_shiftc
+    WriteIO32(&pReg_Alive->ALIVESCRATCHSET6,        g_GT_code);         // store - ctrl_offsetc
+    WriteIO32(&pReg_Alive->ALIVESCRATCHSET7,        g_RD_vwmc);         // store - ctrl_offsetr
+    WriteIO32(&pReg_Alive->ALIVESCRATCHSET8,        g_WR_vwmc);         // store - ctrl_offsetw
+#endif
+
+
+    WriteIO32( &pReg_Alive->VDDOFFCNTVALUERST,      0xFFFFFFFF );       //; clear delay counter, refrence rtc clock
+    WriteIO32( &pReg_Alive->VDDOFFCNTVALUESET,      0x00000001 );       //; set minimum delay time for VDDPWRON pin. 1 cycle per 32.768Kh (about 30us)
+
+    if ( ReadIO32(&pReg_Alive->ALIVEGPIODETECTPENDREG) )
+    {
+        __asm__ __volatile__ ("wfi");                                   //; now real entering point to stop mode.
+    }
+    else
+    {
+        WriteIO32( &pReg_Alive->VDDCTRLRSTREG,          0x00000001 );   //; vddpoweron off, start counting down.
+        WriteIO32( &pReg_Alive->ALIVEGPIODETECTPENDREG, 0xFF );         //; all alive pend pending clear until power down.
+        DMC_Delay(220);
+
+        WriteIO32( &pReg_Alive->ALIVEPWRGATEREG,        0x00000000 );   //; alive power gate close
+    }
+
+    WriteIO32( &pReg_ClkPwr->CPUWARMRESETREQ,       0x0 );              //; clear for reset issue.
+#else   // #if (MULTICORE_SLEEP_CONTROL == 1)
+
+    WriteIO32( &pReg_Alive->ALIVEPWRGATEREG,        0x00000001 );       //; alive power gate open
+
+    WriteIO32( &pReg_Alive->VDDOFFCNTVALUERST,      0xFFFFFFFF );       //; clear delay counter, refrence rtc clock
+    WriteIO32( &pReg_Alive->VDDOFFCNTVALUESET,      0x00000001 );       //; set minimum delay time for VDDPWRON pin. 1 cycle per 32.768Kh (about 30us)
+
+    WriteIO32( &pReg_Alive->VDDCTRLRSTREG,          0x00000001 );       //; vddpoweron off, start counting down.
+    DMC_Delay(220);
+
+    WriteIO32( &pReg_Alive->ALIVEGPIODETECTPENDREG, 0xFF );             //; all alive pend pending clear until power down.
+    WriteIO32( &pReg_Alive->ALIVEPWRGATEREG,        0x00000000 );       //; alive power gate close
+
+    WriteIO32( &pReg_ClkPwr->CPUWARMRESETREQ,       0x0 );              //; clear for reset issue.
+
+    while(1);
+    {
+        __asm__ __volatile__ ("wfi");                                   //; now real entering point to stop mode.
+    }
+#endif  // #if (MULTICORE_SLEEP_CONTROL == 1)
 }
 
 
-void vddPowerOff( void )
+struct NX_CLKPWR_RegisterSet * const clkpwr;
+void sleepMain( void )
 {
-    WriteIO32( &pReg_Alive->ALIVEPWRGATEREG,    0x00000001 );       //; alive power gate open
+#if 0
+    WriteIO32( &clkpwr->PLLSETREG[1],   0x100CC801 );       //; set PLL1 - 800Mhz
+//    WriteIO32( &clkpwr->PLLSETREG[1],   0x100CC802 );       //; set PLL1 - 400Mhz
 
-    WriteIO32( &pReg_Alive->VDDOFFCNTVALUERST,  0xFFFFFFFF );       //; clear delay counter, refrence rtc clock
-    WriteIO32( &pReg_Alive->VDDOFFCNTVALUESET,  0x00000001 );       //; set minimum delay time for VDDPWRON pin. 1 cycle per 32.768Kh (about 30us)
+    __pllchange(clkpwr->PWRMODE | 0x1<<15, &clkpwr->PWRMODE, 0x20000); //533 ==> 800MHz:#0xED00, 1.2G:#0x17000, 1.6G:#0x1E000
 
-    WriteIO32( &pReg_Alive->VDDCTRLRSTREG,      0x00000001 );       //; vddpoweron off, start counting down.
-
-    DMC_Delay(600);     // 600 : 110us, Delay for Pending Clear. When CPU clock is 400MHz, this value is minimum delay value.
-
-    WriteIO32( &pReg_Alive->ALIVEGPIODETECTPENDREG, 0xFF );         //; all alive pend pending clear until power down.
-    WriteIO32( &pReg_Alive->ALIVEPWRGATEREG,    0x00000000 );       //; alive power gate close
-
-    while(1)
     {
-        __asm__ __volatile__ ("wfi");                               //; now real entering point to stop mode.
-    }                                                               //; this time, core power will off and so cpu will die.
+        volatile U32 delay = 0x100000;
+        while((clkpwr->PWRMODE & 0x1<<15) && delay--);    // it's never checked here, just for insure
+        if( clkpwr->PWRMODE & 0x1<<15 )
+        {
+//            printf("pll does not locked\r\nsystem halt!\r\r\n");    // in this point, it's not initialized uart debug port yet
+            while(1);        // system reset code need.
+        }
+    }
+#endif
+
+//    DebugInit();
+
+    enterSelfRefresh();
+    ClearIO32( &pReg_Tieoff->TIEOFFREG[76], (7<<6) );       //; Lock Drex port
+
+    vddPowerOff();
+
+    exitSelfRefresh();
+    DMC_Delay(50);
+
+    SetIO32  ( &pReg_Tieoff->TIEOFFREG[76], (7<<6) );       //; Unlock Drex port
 }
 
 
@@ -201,17 +271,18 @@ void BootMain( U32 CPUID )
     struct NX_SecondBootInfo * pTBI = &TBI;    // third boot info
     CBOOL Result = CFALSE;
     register volatile U32 temp;
-    U32 CPUNumber, sign, isResume = 0;
-    volatile U32 *aliveflag = (U32*)CPU_ALIVE_FLAG_ADDR;
+    U32 sign, isResume = 0;
+
+    WriteIO32( &pReg_ClkPwr->CPUWARMRESETREQ,   0x00 );     // clear for reset issue.
 
     // Set EMA for CPU Cluster0
     temp  = ReadIO32( &pReg_Tieoff->TIEOFFREG[94] ) & ~((0x7 << 23) | (0x7 << 17));
-    temp |= ((0x1 << 23) | (0x1 << 17));
+    temp |= ((EMA_VALUE << 23) | (EMA_VALUE << 17));
     WriteIO32( &pReg_Tieoff->TIEOFFREG[94], temp);
 
     // Set EMA for CPU Cluster1
     temp  = ReadIO32( &pReg_Tieoff->TIEOFFREG[111] ) & ~((0x7 << 23) | (0x7 << 17));
-    temp |= ((0x1 << 23) | (0x1 << 17));
+    temp |= ((EMA_VALUE << 23) | (EMA_VALUE << 17));
     WriteIO32( &pReg_Tieoff->TIEOFFREG[111], temp);
 
 #if 1    // rom boot does not cross usb connection
@@ -233,7 +304,15 @@ void BootMain( U32 CPUID )
     //--------------------------------------------------------------------------
     // build information. version, build time and date
     //--------------------------------------------------------------------------
+#if 1
     buildinfo();
+#else
+    if ( buildinfo() == CFALSE )
+    {
+        printf( "WARNING : NHIS mismatch...!!!\r\n" );
+        while(1);
+    }
+#endif
 
     //--------------------------------------------------------------------------
     // print clock information
@@ -291,20 +370,41 @@ void BootMain( U32 CPUID )
     printf( "Wakeup CPU " );
 
 #if (MULTICORE_BRING_UP == 1)
-    for (CPUNumber = 1; CPUNumber < 8; CPUNumber++)
+{
+    volatile U32 *aliveflag = (U32*)CPU_ALIVE_FLAG_ADDR;
+    int CPUNumber, retry = 0;
+
+    for (CPUNumber = 1; CPUNumber < 8; )
     {
         register volatile U32 delay;
         *aliveflag = 0;
-        delay = 0x100000;
+        delay = 0x10000;
         SetVectorLocation(CPUNumber, CTRUE);    // CTRUE: High Vector(0xFFFF0000), CFALSE: Low Vector (0x0)
         BringUpSlaveCPU(CPUNumber);
         DMC_Delay(1000);
         while((*aliveflag == 0) && (--delay));
         if(delay == 0)
-            printf("CPU %d is not aliving %d\r\n", CPUNumber, delay);
+        {
+            if(retry > 3)
+            {
+                printf("maybe cpu %d is dead. -_-;\r\n", CPUNumber);
+                CPUNumber++;    // try next cpu bringup
+            }
+            else
+            {
+                printf("cpu %d is not bringup, retry\r\n", CPUNumber);
+                retry++;
+            }
+        }
+        else
+        {
+            retry = 0;
+            CPUNumber++;    // try next cpu bringup
+        }
         DMC_Delay(10000);
     }
-#endif
+}
+#endif  // #if (MULTICORE_BRING_UP == 1)
 
     printf( "\r\nCPU Wakeup done! WFI is expected.\r\n" );
     printf( "CPU%d is Master!\r\n\n", CPUID );
