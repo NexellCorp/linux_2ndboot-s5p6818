@@ -377,7 +377,7 @@ static void nx_usb_int_bulkin(USBBOOTSTATUS * pUSBBootStatus)
     dprintf("Bulk In Function\r\n");
 
     bulkin_buf = (U8*)pUSBBootStatus->up_ptr;
-    remain_cnt = pUSBBootStatus->up_size - ((U32)pUSBBootStatus->up_ptr - pUSBBootStatus->up_addr);
+    remain_cnt = pUSBBootStatus->up_size - (U32)(pUSBBootStatus->up_ptr - pUSBBootStatus->up_addr);
 
     if (remain_cnt > pUSBBootStatus->bulkin_max_pktsize) {
         pUOReg->DCSR.DEPIR[BULK_IN_EP].DIEPTSIZ = (1<<19)|(pUSBBootStatus->bulkin_max_pktsize<<0);
@@ -427,10 +427,10 @@ static void nx_usb_int_bulkout(USBBOOTSTATUS * pUSBBootStatus, struct NX_SecondB
             if( pTBI->SIGNATURE == HEADER_ID )      // "NSIH"
             {
                 pUSBBootStatus->bHeaderReceived = CTRUE;
-                pUSBBootStatus->RxBuffAddr    = (U8*)pTBI->LOADADDR;
+                pUSBBootStatus->RxBuffAddr    = (U8*)((MPTRS)pTBI->LOADADDR);
                 pUSBBootStatus->iRxSize = pTBI->LOADSIZE;
-                printf("USB Load Address = 0x%08X Launch Address = 0x%08X, size = %d bytes\r\n",
-                    (S32)pUSBBootStatus->RxBuffAddr , pTBI->LAUNCHADDR, pUSBBootStatus->iRxSize );
+                printf("USB Load Address = 0x%016X Launch Address = 0x%08X, size = %d bytes\r\n",
+                    (MPTRS)pUSBBootStatus->RxBuffAddr , pTBI->LAUNCHADDR, pUSBBootStatus->iRxSize );
             }
             else
             {
@@ -442,7 +442,7 @@ static void nx_usb_int_bulkout(USBBOOTSTATUS * pUSBBootStatus, struct NX_SecondB
     else
     {
         NX_ASSERT( (pUSBBootStatus->iRxSize) > 0 );
-        NX_ASSERT( 0 == ((U32)pUSBBootStatus->RxBuffAddr & 3) );
+        NX_ASSERT( 0 == ((MPTRS)pUSBBootStatus->RxBuffAddr & 3) );
         nx_usb_read_out_fifo(BULK_OUT_EP, (U8 *)pUSBBootStatus->RxBuffAddr, fifo_cnt_byte);
 
     #if (0)
@@ -496,6 +496,12 @@ static void nx_usb_reset(USBBOOTSTATUS * pUSBBootStatus)
 static S32 nx_usb_set_init(USBBOOTSTATUS * pUSBBootStatus)
 {
     U32 status = pUOReg->DCSR.DSTS; /* System status read */
+    union
+    {
+        U32 AID;
+        U16 SID[2];
+        U8  BID[4];
+    }USBID;
 
     pUSBBootStatus->bHeaderReceived = CFALSE;
     pUSBBootStatus->iRxHeaderSize = 0;
@@ -549,10 +555,20 @@ static S32 nx_usb_set_init(USBBOOTSTATUS * pUSBBootStatus)
         pUOReg->DCSR.DEPOR[CONTROL_EP].DOEPCTL = (1u<<31)|(1<<26)|(3<<0);
     }
 
-    pUSBBootStatus->DeviceDescriptor[8]  = (U8)(g_USBD_VID & 0xFF);  //  8 vendor ID LSB
-    pUSBBootStatus->DeviceDescriptor[9]  = (U8)(g_USBD_VID >> 8);    //  9 vendor ID MSB
-    pUSBBootStatus->DeviceDescriptor[10] = (U8)(g_USBD_PID & 0xFF);  // 10 product ID LSB    (second product)
-    pUSBBootStatus->DeviceDescriptor[11] = (U8)(g_USBD_PID >> 8);    // 11 product ID MSB
+    //--------------------------------------------------------------------------
+    // get VID & PID for USBD
+    //--------------------------------------------------------------------------
+    USBID.AID = ReadIO32(&pReg_ECID->ECID[3]);
+
+    SYSMSG("USBD VID = %04X, PID = %04X\r\n", USBID.SID[1], USBID.SID[0]);
+
+    if ((USBID.SID[0] != 0) && (USBID.SID[1] != 0))
+    {
+        pUSBBootStatus->DeviceDescriptor[8]  = (U8)(USBID.BID[2]);  //  8 vendor ID LSB
+        pUSBBootStatus->DeviceDescriptor[9]  = (U8)(USBID.BID[3]);  //  9 vendor ID MSB
+        pUSBBootStatus->DeviceDescriptor[10] = (U8)(USBID.BID[0]);  // 10 product ID LSB    (second product)
+        pUSBBootStatus->DeviceDescriptor[11] = (U8)(USBID.BID[1]);  // 11 product ID MSB
+    }
 
     /* set_opmode */
     pUOReg->GCSR.GINTMSK = INT_RESUME|INT_OUT_EP|INT_IN_EP|INT_ENUMDONE|INT_RESET|INT_SUSPEND|INT_RX_FIFO_NOT_EMPTY;
@@ -759,7 +775,7 @@ CBOOL iUSBBOOT(struct NX_SecondBootInfo * pTBI)
     pUSBBootStatus->speed = USB_HIGH;
     pUSBBootStatus->ep0_state = EP0_STATE_INIT;
 
-    printf("irom usb boot ready!\r\n");
+    printf("usb boot ready!\r\n");
 
     pUSBBootStatus->bDownLoading = CTRUE;
     while (pUSBBootStatus->bDownLoading)

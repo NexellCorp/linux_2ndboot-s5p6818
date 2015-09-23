@@ -857,7 +857,7 @@ static CBOOL	NX_SDMMC_ReadSectorData( SDXCBOOTSTATUS * pSDXCBootStatus, U32 numb
 	U32		count;
 	register struct NX_SDMMC_RegisterSet * const pSDXCReg = pgSDXCReg[pSDXCBootStatus->SDPort];
 
-	NX_ASSERT( 0==((U32)pdwBuffer & 3) );
+	NX_ASSERT( 0==((MPTRS)pdwBuffer & 3) );
 
 	count = numberOfSector*BLOCK_LENGTH;
 	NX_ASSERT( 0 == (count % 32) );
@@ -937,7 +937,7 @@ CBOOL	NX_SDMMC_ReadSectors( SDXCBOOTSTATUS * pSDXCBootStatus, U32 SectorNum, U32
 	NX_SDMMC_COMMAND cmd;
 	register struct NX_SDMMC_RegisterSet * const pSDXCReg = pgSDXCReg[pSDXCBootStatus->SDPort];
 
-	NX_ASSERT( 0==((U32)pdwBuffer & 3) );
+	NX_ASSERT( 0==((MPTRS)pdwBuffer & 3) );
 
 	while(pSDXCReg->STATUS & (NX_SDXC_STATUS_DATABUSY | NX_SDXC_STATUS_FSMBUSY));		// wait while data busy or data transfer busy
 
@@ -1093,7 +1093,7 @@ static	CBOOL	SDMMCBOOT( SDXCBOOTSTATUS * pSDXCBootStatus, struct NX_SecondBootIn
 		dprintf("Load Addr :0x%08X,  Load Size :0x%08X,  Launch Addr :0x%08X\r\n",
 			pTBI->LOADADDR, pTBI->LOADSIZE, pTBI->LAUNCHADDR);
 
-		result = NX_SDMMC_ReadSectors( pSDXCBootStatus, pSBI->DEVICEADDR/BLOCK_LENGTH+1, (pTBI->LOADSIZE+BLOCK_LENGTH-1)/BLOCK_LENGTH, (U32 *)pTBI->LOADADDR );
+		result = NX_SDMMC_ReadSectors( pSDXCBootStatus, pSBI->DEVICEADDR/BLOCK_LENGTH+1, (pTBI->LOADSIZE+BLOCK_LENGTH-1)/BLOCK_LENGTH, (U32 *)((MPTRS)pTBI->LOADADDR) );
 		if(result == CFALSE)
 		{
 			dprintf("Image Read Failure\r\n");
@@ -1124,60 +1124,60 @@ void NX_SDPADSetALT(U32 PortNum)
 		register U32 *pGPIOBRegA0 = (U32 *)&pReg_GPIO[GPIO_GROUP_B]->GPIOxALTFN[0];	// b 1, 3, 5, 7
 		*pGPIOARegA1 = (*pGPIOARegA1 & ~0xCC000000) | 0x44000000;	// all alt is 1
 		*pGPIOBRegA0 = (*pGPIOBRegA0 & ~0x0000CCCC) | 0x00004444;	// all alt is 1
-		pReg_GPIO[GPIO_GROUP_A]->GPIOx_SLEW &= ~(5<<29);
-		pReg_GPIO[GPIO_GROUP_A]->GPIOx_SLEW_DISABLE_DEFAULT |= 5<<29;
-		pReg_GPIO[GPIO_GROUP_A]->GPIOx_DRV0 |= 5<<29;
-		pReg_GPIO[GPIO_GROUP_A]->GPIOx_DRV0_DISABLE_DEFAULT |= 5<<29;
-		pReg_GPIO[GPIO_GROUP_A]->GPIOx_DRV1 |= 5<<29;
-		pReg_GPIO[GPIO_GROUP_A]->GPIOx_DRV1_DISABLE_DEFAULT |= 5<<29;
-		pReg_GPIO[GPIO_GROUP_A]->GPIOx_PULLSEL |= 5<<29;
-		pReg_GPIO[GPIO_GROUP_A]->GPIOx_PULLSEL_DISABLE_DEFAULT |= 5<<29;
-//		pReg_GPIO[GPIO_GROUP_A]->GPIOx_PULLENB |= 5<<29;
-		pReg_GPIO[GPIO_GROUP_A]->GPIOx_PULLENB |= 4<<29;		// clk is not pull-up.
-		pReg_GPIO[GPIO_GROUP_A]->GPIOx_PULLENB_DISABLE_DEFAULT |= 5<<29;
+		pReg_GPIO[GPIO_GROUP_A]->GPIOx_SLEW                    &= ~(5<<29);
+		pReg_GPIO[GPIO_GROUP_A]->GPIOx_SLEW_DISABLE_DEFAULT    |=  (5<<29);
+		pReg_GPIO[GPIO_GROUP_A]->GPIOx_DRV0                    |=  (5<<29);
+		pReg_GPIO[GPIO_GROUP_A]->GPIOx_DRV0_DISABLE_DEFAULT    |=  (5<<29);
+		pReg_GPIO[GPIO_GROUP_A]->GPIOx_DRV1                    |=  (5<<29);
+		pReg_GPIO[GPIO_GROUP_A]->GPIOx_DRV1_DISABLE_DEFAULT    |=  (5<<29);
+		pReg_GPIO[GPIO_GROUP_A]->GPIOx_PULLSEL                 |=  (5<<29);
+		pReg_GPIO[GPIO_GROUP_A]->GPIOx_PULLSEL_DISABLE_DEFAULT |=  (5<<29);
+//		pReg_GPIO[GPIO_GROUP_A]->GPIOx_PULLENB                 |=  (5<<29);
+		pReg_GPIO[GPIO_GROUP_A]->GPIOx_PULLENB                 |=  (4<<29);         // clk is not pull-up.
+		pReg_GPIO[GPIO_GROUP_A]->GPIOx_PULLENB_DISABLE_DEFAULT |=  (5<<29);
 
-		pReg_GPIO[GPIO_GROUP_B]->GPIOx_SLEW &= ~(0x55<<1);
-		pReg_GPIO[GPIO_GROUP_B]->GPIOx_SLEW_DISABLE_DEFAULT |= 0x55<<1;
-		pReg_GPIO[GPIO_GROUP_B]->GPIOx_DRV0 |= 0x55<<1;
-		pReg_GPIO[GPIO_GROUP_B]->GPIOx_DRV0_DISABLE_DEFAULT |= 0x55<<1;
-		pReg_GPIO[GPIO_GROUP_B]->GPIOx_DRV1 |= 0x55<<1;
-		pReg_GPIO[GPIO_GROUP_B]->GPIOx_DRV1_DISABLE_DEFAULT |= 0x55<<1;
-		pReg_GPIO[GPIO_GROUP_B]->GPIOx_PULLSEL |= 0x55<<1;
-		pReg_GPIO[GPIO_GROUP_B]->GPIOx_PULLSEL_DISABLE_DEFAULT |= 0x55<<1;
-		pReg_GPIO[GPIO_GROUP_B]->GPIOx_PULLENB |= 0x55<<1;
-		pReg_GPIO[GPIO_GROUP_B]->GPIOx_PULLENB_DISABLE_DEFAULT |= 0x55<<1;
+		pReg_GPIO[GPIO_GROUP_B]->GPIOx_SLEW                    &= ~(0x55<<1);
+		pReg_GPIO[GPIO_GROUP_B]->GPIOx_SLEW_DISABLE_DEFAULT    |=  (0x55<<1);
+		pReg_GPIO[GPIO_GROUP_B]->GPIOx_DRV0                    |=  (0x55<<1);
+		pReg_GPIO[GPIO_GROUP_B]->GPIOx_DRV0_DISABLE_DEFAULT    |=  (0x55<<1);
+		pReg_GPIO[GPIO_GROUP_B]->GPIOx_DRV1                    |=  (0x55<<1);
+		pReg_GPIO[GPIO_GROUP_B]->GPIOx_DRV1_DISABLE_DEFAULT    |=  (0x55<<1);
+		pReg_GPIO[GPIO_GROUP_B]->GPIOx_PULLSEL                 |=  (0x55<<1);
+		pReg_GPIO[GPIO_GROUP_B]->GPIOx_PULLSEL_DISABLE_DEFAULT |=  (0x55<<1);
+		pReg_GPIO[GPIO_GROUP_B]->GPIOx_PULLENB                 |=  (0x55<<1);
+		pReg_GPIO[GPIO_GROUP_B]->GPIOx_PULLENB_DISABLE_DEFAULT |=  (0x55<<1);
 	}else
 	if(PortNum == 1)
 	{
-		register U32 *pGPIODRegA1 = (U32 *)&pReg_GPIO[GPIO_GROUP_D]->GPIOxALTFN[1];	// d 22, 23, 24, 25, 26, 27
+		register U32 *pGPIODRegA1 = (U32 *)&pReg_GPIO[GPIO_GROUP_D]->GPIOxALTFN[1]; // d 22, 23, 24, 25, 26, 27
 		*pGPIODRegA1 = (*pGPIODRegA1 & ~0x00FFF000) | 0x00555000;	// all alt is 1
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_SLEW &= ~(0x3F<<22);
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_SLEW_DISABLE_DEFAULT |= 0x3F<<22;
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_DRV0 |= 0x3F<<22;
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_DRV0_DISABLE_DEFAULT |= 0x3F<<22;
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_DRV1 |= 0x3F<<22;
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_DRV1_DISABLE_DEFAULT |= 0x3F<<22;
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLSEL |= 0x3F<<22;
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLSEL_DISABLE_DEFAULT |= 0x3F<<22;
-//		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLENB |= 0x3F<<22;
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLENB |= 0x3E<<22;		// clk is not pull-up.
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLENB_DISABLE_DEFAULT |= 0x3F<<22;
+		pReg_GPIO[GPIO_GROUP_D]->GPIOx_SLEW                    &= ~(0x3F<<22);
+		pReg_GPIO[GPIO_GROUP_D]->GPIOx_SLEW_DISABLE_DEFAULT    |=  (0x3F<<22);
+		pReg_GPIO[GPIO_GROUP_D]->GPIOx_DRV0                    |=  (0x3F<<22);
+		pReg_GPIO[GPIO_GROUP_D]->GPIOx_DRV0_DISABLE_DEFAULT    |=  (0x3F<<22);
+		pReg_GPIO[GPIO_GROUP_D]->GPIOx_DRV1                    |=  (0x3F<<22);
+		pReg_GPIO[GPIO_GROUP_D]->GPIOx_DRV1_DISABLE_DEFAULT    |=  (0x3F<<22);
+		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLSEL                 |=  (0x3F<<22);
+		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLSEL_DISABLE_DEFAULT |=  (0x3F<<22);
+//		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLENB                 |=  (0x3F<<22);
+		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLENB                 |=  (0x3E<<22);      // clk is not pull-up.
+		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLENB_DISABLE_DEFAULT |=  (0x3F<<22);
 	}
 	else
 	{
-		register U32 *pGPIOCRegA1 = (U32 *)&pReg_GPIO[GPIO_GROUP_C]->GPIOxALTFN[1];	// c 18, 19, 20, 21, 22, 23
+		register U32 *pGPIOCRegA1 = (U32 *)&pReg_GPIO[GPIO_GROUP_C]->GPIOxALTFN[1]; // c 18, 19, 20, 21, 22, 23
 		*pGPIOCRegA1 = (*pGPIOCRegA1 & ~0x0000FFF0) | 0x0000AAA0;	// all alt is 2
-		pReg_GPIO[GPIO_GROUP_C]->GPIOx_SLEW &= ~(0x3F<<18);
-		pReg_GPIO[GPIO_GROUP_C]->GPIOx_SLEW_DISABLE_DEFAULT |= 0x3F<<18;
-		pReg_GPIO[GPIO_GROUP_C]->GPIOx_DRV0 |= 0x3F<<18;
-		pReg_GPIO[GPIO_GROUP_C]->GPIOx_DRV0_DISABLE_DEFAULT |= 0x3F<<18;
-		pReg_GPIO[GPIO_GROUP_C]->GPIOx_DRV1 |= 0x3F<<18;
-		pReg_GPIO[GPIO_GROUP_C]->GPIOx_DRV1_DISABLE_DEFAULT |= 0x3F<<18;
-		pReg_GPIO[GPIO_GROUP_C]->GPIOx_PULLSEL |= 0x3F<<18;
-		pReg_GPIO[GPIO_GROUP_C]->GPIOx_PULLSEL_DISABLE_DEFAULT |= 0x3F<<18;
-//		pReg_GPIO[GPIO_GROUP_C]->GPIOx_PULLENB |= 0x3F<<18;
-		pReg_GPIO[GPIO_GROUP_C]->GPIOx_PULLENB |= 0x3E<<18;		// clk is not pull-up.
-		pReg_GPIO[GPIO_GROUP_C]->GPIOx_PULLENB_DISABLE_DEFAULT |= 0x3F<<18;
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_SLEW                    &= ~(0x3F<<18);
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_SLEW_DISABLE_DEFAULT    |=  (0x3F<<18);
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_DRV0                    |=  (0x3F<<18);
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_DRV0_DISABLE_DEFAULT    |=  (0x3F<<18);
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_DRV1                    |=  (0x3F<<18);
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_DRV1_DISABLE_DEFAULT    |=  (0x3F<<18);
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_PULLSEL                 |=  (0x3F<<18);
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_PULLSEL_DISABLE_DEFAULT |=  (0x3F<<18);
+//		pReg_GPIO[GPIO_GROUP_C]->GPIOx_PULLENB                 |=  (0x3F<<18);
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_PULLENB                 |=  (0x3E<<18);      // clk is not pull-up.
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_PULLENB_DISABLE_DEFAULT |=  (0x3F<<18);
 	}
 }
 
@@ -1190,56 +1190,56 @@ void NX_SDPADSetGPIO(U32 PortNum)
 		register U32 *pGPIOBRegA0 = (U32 *)&pReg_GPIO[GPIO_GROUP_B]->GPIOxALTFN[0];
 		*pGPIOARegA1 &= ~0xCC000000;	// all gpio is 0
 		*pGPIOBRegA0 &= ~0x0000CCCC;
-		pReg_GPIO[GPIO_GROUP_A]->GPIOx_SLEW |= 5<<29;
-		pReg_GPIO[GPIO_GROUP_A]->GPIOx_SLEW_DISABLE_DEFAULT |= 5<<29;
-		pReg_GPIO[GPIO_GROUP_A]->GPIOx_DRV0 &= ~(5<<29);
-		pReg_GPIO[GPIO_GROUP_A]->GPIOx_DRV0_DISABLE_DEFAULT |= 5<<29;
-		pReg_GPIO[GPIO_GROUP_A]->GPIOx_DRV1 &= ~(5<<29);
-		pReg_GPIO[GPIO_GROUP_A]->GPIOx_DRV1_DISABLE_DEFAULT |= 5<<29;
-		pReg_GPIO[GPIO_GROUP_A]->GPIOx_PULLSEL &= ~(5<<29);
+		pReg_GPIO[GPIO_GROUP_A]->GPIOx_SLEW                    |=  (5<<29);
+		pReg_GPIO[GPIO_GROUP_A]->GPIOx_SLEW_DISABLE_DEFAULT    |=  (5<<29);
+		pReg_GPIO[GPIO_GROUP_A]->GPIOx_DRV0                    &= ~(5<<29);
+		pReg_GPIO[GPIO_GROUP_A]->GPIOx_DRV0_DISABLE_DEFAULT    |=  (5<<29);
+		pReg_GPIO[GPIO_GROUP_A]->GPIOx_DRV1                    &= ~(5<<29);
+		pReg_GPIO[GPIO_GROUP_A]->GPIOx_DRV1_DISABLE_DEFAULT    |=  (5<<29);
+		pReg_GPIO[GPIO_GROUP_A]->GPIOx_PULLSEL                 &= ~(5<<29);
 		pReg_GPIO[GPIO_GROUP_A]->GPIOx_PULLSEL_DISABLE_DEFAULT &= ~(5<<29);
-		pReg_GPIO[GPIO_GROUP_A]->GPIOx_PULLENB &= ~(5<<29);
+		pReg_GPIO[GPIO_GROUP_A]->GPIOx_PULLENB                 &= ~(5<<29);
 		pReg_GPIO[GPIO_GROUP_A]->GPIOx_PULLENB_DISABLE_DEFAULT &= ~(5<<29);
 
-		pReg_GPIO[GPIO_GROUP_B]->GPIOx_SLEW |= 0x55<<1;
-		pReg_GPIO[GPIO_GROUP_B]->GPIOx_SLEW_DISABLE_DEFAULT |= 0x55<<1;
-		pReg_GPIO[GPIO_GROUP_B]->GPIOx_DRV0 &= ~(0x55<<1);
-		pReg_GPIO[GPIO_GROUP_B]->GPIOx_DRV0_DISABLE_DEFAULT |= 0x55<<1;
-		pReg_GPIO[GPIO_GROUP_B]->GPIOx_DRV1 &= ~(0x55<<1);
-		pReg_GPIO[GPIO_GROUP_B]->GPIOx_DRV1_DISABLE_DEFAULT |= 0x55<<1;
-		pReg_GPIO[GPIO_GROUP_B]->GPIOx_PULLSEL &= ~(0x55<<1);
+		pReg_GPIO[GPIO_GROUP_B]->GPIOx_SLEW                    |=  (0x55<<1);
+		pReg_GPIO[GPIO_GROUP_B]->GPIOx_SLEW_DISABLE_DEFAULT    |=  (0x55<<1);
+		pReg_GPIO[GPIO_GROUP_B]->GPIOx_DRV0                    &= ~(0x55<<1);
+		pReg_GPIO[GPIO_GROUP_B]->GPIOx_DRV0_DISABLE_DEFAULT    |=  (0x55<<1);
+		pReg_GPIO[GPIO_GROUP_B]->GPIOx_DRV1                    &= ~(0x55<<1);
+		pReg_GPIO[GPIO_GROUP_B]->GPIOx_DRV1_DISABLE_DEFAULT    |=  (0x55<<1);
+		pReg_GPIO[GPIO_GROUP_B]->GPIOx_PULLSEL                 &= ~(0x55<<1);
 		pReg_GPIO[GPIO_GROUP_B]->GPIOx_PULLSEL_DISABLE_DEFAULT &= ~(0x55<<1);
-		pReg_GPIO[GPIO_GROUP_B]->GPIOx_PULLENB &= ~(0x55<<1);
+		pReg_GPIO[GPIO_GROUP_B]->GPIOx_PULLENB                 &= ~(0x55<<1);
 		pReg_GPIO[GPIO_GROUP_B]->GPIOx_PULLENB_DISABLE_DEFAULT &= ~(0x55<<1);
 	}else
 	if(PortNum == 1)
 	{
-		register U32 *pGPIODRegA1 = (U32 *)&pReg_GPIO[GPIO_GROUP_D]->GPIOxALTFN[1];	// d 22, 23, 24, 25, 26, 27
+		register U32 *pGPIODRegA1 = (U32 *)&pReg_GPIO[GPIO_GROUP_D]->GPIOxALTFN[1]; // d 22, 23, 24, 25, 26, 27
 		*pGPIODRegA1 = (*pGPIODRegA1 & ~0x00FFF000);	// all gpio is 0
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_SLEW |= 0x3F<<22;
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_SLEW_DISABLE_DEFAULT |= 0x3F<<22;
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_DRV0 &= ~(0x3F<<22);
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_DRV0_DISABLE_DEFAULT |= 0x3F<<22;
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_DRV1 &= ~(0x3F<<22);
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_DRV1_DISABLE_DEFAULT |= 0x3F<<22;
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLSEL &= ~(0x3F<<22);
+		pReg_GPIO[GPIO_GROUP_D]->GPIOx_SLEW                    |=  (0x3F<<22);
+		pReg_GPIO[GPIO_GROUP_D]->GPIOx_SLEW_DISABLE_DEFAULT    |=  (0x3F<<22);
+		pReg_GPIO[GPIO_GROUP_D]->GPIOx_DRV0                    &= ~(0x3F<<22);
+		pReg_GPIO[GPIO_GROUP_D]->GPIOx_DRV0_DISABLE_DEFAULT    |=  (0x3F<<22);
+		pReg_GPIO[GPIO_GROUP_D]->GPIOx_DRV1                    &= ~(0x3F<<22);
+		pReg_GPIO[GPIO_GROUP_D]->GPIOx_DRV1_DISABLE_DEFAULT    |=  (0x3F<<22);
+		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLSEL                 &= ~(0x3F<<22);
 		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLSEL_DISABLE_DEFAULT &= ~(0x3F<<22);
-		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLENB &= ~(0x3F<<22);
+		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLENB                 &= ~(0x3F<<22);
 		pReg_GPIO[GPIO_GROUP_D]->GPIOx_PULLENB_DISABLE_DEFAULT &= ~(0x3F<<22);
 	}
 	else
 	{
 		register U32 *pGPIOCRegA1 = (U32 *)&pReg_GPIO[GPIO_GROUP_C]->GPIOxALTFN[1];
 		*pGPIOCRegA1 = (*pGPIOCRegA1 & ~0x0000FFF0) | 0x00005550;	// all gpio is 1
-		pReg_GPIO[GPIO_GROUP_C]->GPIOx_SLEW |= 0x3F<<18;
-		pReg_GPIO[GPIO_GROUP_C]->GPIOx_SLEW_DISABLE_DEFAULT |= 0x3F<<18;
-		pReg_GPIO[GPIO_GROUP_C]->GPIOx_DRV0 &= ~(0x3F<<18);
-		pReg_GPIO[GPIO_GROUP_C]->GPIOx_DRV0_DISABLE_DEFAULT |= 0x3F<<18;
-		pReg_GPIO[GPIO_GROUP_C]->GPIOx_DRV1 &= ~(0x3F<<18);
-		pReg_GPIO[GPIO_GROUP_C]->GPIOx_DRV1_DISABLE_DEFAULT |= 0x3F<<18;
-		pReg_GPIO[GPIO_GROUP_C]->GPIOx_PULLSEL &= ~(0x3F<<18);
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_SLEW                    |=  (0x3F<<18);
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_SLEW_DISABLE_DEFAULT    |=  (0x3F<<18);
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_DRV0                    &= ~(0x3F<<18);
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_DRV0_DISABLE_DEFAULT    |=  (0x3F<<18);
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_DRV1                    &= ~(0x3F<<18);
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_DRV1_DISABLE_DEFAULT    |=  (0x3F<<18);
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_PULLSEL                 &= ~(0x3F<<18);
 		pReg_GPIO[GPIO_GROUP_C]->GPIOx_PULLSEL_DISABLE_DEFAULT &= ~(0x3F<<18);
-		pReg_GPIO[GPIO_GROUP_C]->GPIOx_PULLENB &= ~(0x3F<<18);
+		pReg_GPIO[GPIO_GROUP_C]->GPIOx_PULLENB                 &= ~(0x3F<<18);
 		pReg_GPIO[GPIO_GROUP_C]->GPIOx_PULLENB_DISABLE_DEFAULT &= ~(0x3F<<18);
 	}
 }
@@ -1251,7 +1251,7 @@ U32	iSDXCBOOT( struct NX_SecondBootInfo * pTBI )
 	CBOOL	result = CFALSE;
 	SDXCBOOTSTATUS lSDXCBootStatus;
 	SDXCBOOTSTATUS * pSDXCBootStatus;
-	*(U32 *)0xFFFF7FFC = (U32)&lSDXCBootStatus;
+//	*(U32 *)0xFFFF7FFC = (U32)&lSDXCBootStatus;
 
 //	pSBI->DBI.SDMMCBI.PortNumber = 1;
 //	pSBI->DEVICEADDR = 128 * 1024;

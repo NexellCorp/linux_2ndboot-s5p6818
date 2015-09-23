@@ -380,7 +380,7 @@ typedef struct __attribute__((aligned(4))) tag_USBBOOTSTATUS
 	U32		Current_Fifo_Size;
 	U32		Remain_size;
 
-	U32		up_addr;
+	U8*		up_addr;
 	U32		up_size;
 	U8*		up_ptr;
 

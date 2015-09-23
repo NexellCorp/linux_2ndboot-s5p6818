@@ -49,16 +49,16 @@ FFFF0000	// 0x048 : Load Address for 2ndboot.
 FFFF0000	// 0x04C : Launch Address for 2ndboot.
 
 00000002	// 0x050	[7:0] - Channel number
-03000000	// 0x054	Boot From SDMMC	[31:24] - 0: USB, 1: SPI, 2: NAND, 3:SDMMC, 4: SDFS
+03000000	// 0x054	Boot From SDMMC	[31:24] - 0: USB, 1: SPI, 2: NAND, 3: SDMMC, 4: SDFS
 00000000	// 0x058
 
 //------------------------------------------------------------------------------
 // CLKPWR registers
 //------------------------------------------------------------------------------
-100CC801	// 0x05C : PLL0		800MHz	P:3	M:200	S:1
-100CC801	// 0x060 : PLL1		800MHz	P:3	M:200	S:1
+100CC801	// 0x05C : PLL0		800MHz		P:3	M:200	S:1
+100CC801	// 0x060 : PLL1		800MHz		P:3	M:200	S:1
 50086601	// 0x064 : PLL2		614.4MHz	P:2	M:102	S:1	K:26214
-100CC801	// 0x068 : PLL3		800MHz	P:3	M:200	S:1	K:0
+100CC801	// 0x068 : PLL3		800MHz		P:3	M:200	S:1	K:0
 
 66660104	// 0x06C : PLL2 SPREAD
 00000104	// 0x070 : PLL3 SPREAD

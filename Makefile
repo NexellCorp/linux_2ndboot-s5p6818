@@ -21,23 +21,35 @@ LDFLAGS		=	-Bstatic							\
 			-Wl,--start-group						\
 			-Lsrc/$(DIR_OBJOUTPUT)						\
 			-Wl,--end-group							\
+			-Wl,--build-id=none						\
 			-nostdlib
 
-SYS_OBJS	=	startup.o secondboot.o				\
-			resetcon.o GPIO.o CRC32.o			\
-			clockinit.o debug.o lib2ndboot.o buildinfo.o	\
+SYS_OBJS	=	startup_$(OPMODE).o secondboot.o subcpu.o sleep.o	\
+			resetcon.o GPIO.o CRC32.o				\
+			clockinit.o debug.o lib2ndboot.o buildinfo.o		\
 			printf.o
 SYS_OBJS	+=	sysbus.o
-SYS_OBJS	+=	MemoryInit.o
+
+ifeq ($(MEMTYPE),DDR3)
+SYS_OBJS	+=	init_DDR3.o
+endif
+ifeq ($(MEMTYPE),LPDDR3)
+SYS_OBJS	+=	init_LPDDR3.o
+endif
+
 #SYS_OBJS	+=	CRYPTO.o
 #SYS_OBJS	+=	nx_tieoff.o
+
+ifeq ($(INITPMIC),YES)
+SYS_OBJS	+=	i2c_gpio.o pmic.o
+endif
 
 ifeq ($(BUILTINALL),n)
 ifeq ($(BOOTFROM),USB)
 SYS_OBJS	+=	iUSBBOOT.o
 endif
 ifeq ($(BOOTFROM),SPI)
-SYS_OBJS	+=	iSPIBOOT.o CRYPTO.o
+SYS_OBJS	+=	iSPIBOOT.o
 endif
 ifeq ($(BOOTFROM),SDMMC)
 SYS_OBJS	+=	iSDHCBOOT.o
@@ -54,7 +66,7 @@ endif
 
 else ifeq ($(BUILTINALL),y)
 SYS_OBJS	+=	iUSBBOOT.o
-SYS_OBJS	+=	iSPIBOOT.o CRYPTO.o
+SYS_OBJS	+=	iSPIBOOT.o
 SYS_OBJS	+=	iSDHCBOOT.o diskio.o fatfs.o iSDHCFSBOOT.o
 SYS_OBJS	+=	iNANDBOOTEC.o
 #SYS_OBJS	+=	iUARTBOOT.o

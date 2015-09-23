@@ -27,6 +27,7 @@ CBOOL   DebugInit( void );
 void    DebugPutch( S8 ch );
 S8      DebugGetch( void );
 CBOOL   DebugIsBusy(void);
+CBOOL   DebugIsTXEmpty(void);
 
 void    DebugPutString( const S8* const String );
 S32     DebugGetString( S8* const pStringBuffer );

@@ -16,18 +16,7 @@
 //	History		:
 //				2014.08.21 Hans Create
 //------------------------------------------------------------------------------
-#include "cfgFreqDefine.h"
-
-#include <nx_peridot.h>
-#include <nx_type.h>
-#include <debug.h>
-
-#include <nx_chip.h>
-
-#include <nx_gpio.h>
-#include <nx_clkgen.h>
-#include <nx_uart.h>
-#include <nx_tieoff.h>
+#include "sysHeader.h"
 
 #define UARTSRC	1
 #define SOURCE_DIVID	(16UL)
@@ -81,16 +70,12 @@ U32 GPIOALTNUM[12] =
 	PADINDEX_OF_pl01115_Uart_nodma2_UARTRXD,
 	PADINDEX_OF_pl01115_Uart_nodma2_UARTTXD,
 };
-#if DIRECT_IO
-extern struct NX_GPIO_RegisterSet (* pReg_GPIO)[1];
-#endif
-extern struct NX_CLKGEN_RegisterSet * pReg_UartClkGen;
-extern struct NX_UART_RegisterSet   * pReg_Uart;
-extern struct NX_TIEOFF_RegisterSet * pReg_Tieoff;
+
 //------------------------------------------------------------------------------
 
 CBOOL DebugInit( void )
 {
+	NX_CLKPWR_SetOSCFreq( OSC_KHZ );
 	U32 SOURCE_CLOCK = NX_CLKPWR_GetPLLFreq(NX_CLKSRC_UART);
 
 #if DIRECT_IO

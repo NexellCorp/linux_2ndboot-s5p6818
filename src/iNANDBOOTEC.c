@@ -27,9 +27,9 @@
 
 //------------------------------------------------------------------------------
 #ifdef DEBUG
-#define dprintf(x, ...)	printf(x, ...)
+#define dprintf(x, ...) printf(x, ...)
 #else
-#define dprintf(x, ...)
+#define dprintf(x, ...) {}
 #endif
 
 #define ROW_START				(0)
@@ -502,6 +502,7 @@ static CBOOL	NANDFlash_ReadSector( NANDBOOTECSTATUS *pBootStatus, U32 *pData, CB
 //------------------------------------------------------------------------------
 CBOOL	iNANDBOOTEC( struct NX_SecondBootInfo * pTBI )
 {
+    register struct NX_GPIO_RegisterSet * pGPIOxRegB = (struct NX_GPIO_RegisterSet *)&pReg_GPIO[GPIO_GROUP_B];
 	CBOOL Result = CTRUE, isRescueBoot = CFALSE;
 	U32 dwBinAddr, iBinSecLeft;
 	NANDBOOTECSTATUS BootStatus, *pBootStatus;
@@ -526,12 +527,23 @@ CBOOL	iNANDBOOTEC( struct NX_SecondBootInfo * pTBI )
 	pNandControl->NFTOCH = pSBI->DBI.NANDBI.tOCH;
 	pNandControl->NFTCAH = 0xF;
 
-	pReg_GPIO[1]->GPIOxALTFN[1] &= ~0x00000033;		// B 16, 18 ALT0
 	pNandControl->NFCONTROL = (pNandControl->NFCONTROL & ~(NX_NFCTRL_BANK | NX_NFCTRL_HWBOOT_W | NX_NFCTRL_EXSEL_W)) | 0x00;	// nNSCS0
 
-	pReg_GPIO[1]->GPIOxALTFN[0] &= ~0x0C000000;	// GPIO B[13]
-	pReg_GPIO[1]->GPIOxALTFN[1] &= ~0x0003FF33;	// GPIO B[15, 17, 19, 20, 21, 22, 23]
+	pGPIOxRegB->GPIOxALTFN[0] &= ~0xFFC00000;   // GPIO B[11, 12, 13, 14, 15] ALT0
+	pGPIOxRegB->GPIOxALTFN[1] &= ~0x0000FFFF;   // GPIO B[16, 17, 18, 19, 20, 21, 22, 23] ALT0
 
+#if 1
+    pGPIOxRegB->GPIOx_SLEW                      &= ~(0x1FFF<<11);
+    pGPIOxRegB->GPIOx_SLEW_DISABLE_DEFAULT      |=  (0x1FFF<<11);
+    pGPIOxRegB->GPIOx_DRV0                      |=  (0x1FFF<<11);
+    pGPIOxRegB->GPIOx_DRV0_DISABLE_DEFAULT      |=  (0x1FFF<<11);
+    pGPIOxRegB->GPIOx_DRV1                      |=  (0x1FFF<<11);
+    pGPIOxRegB->GPIOx_DRV1_DISABLE_DEFAULT      |=  (0x1FFF<<11);
+    pGPIOxRegB->GPIOx_PULLSEL                   |=  (0x1FFF<<11);
+    pGPIOxRegB->GPIOx_PULLSEL_DISABLE_DEFAULT   |=  (0x1FFF<<11);
+    pGPIOxRegB->GPIOx_PULLENB                   &= ~(0x1FFF<<11);
+    pGPIOxRegB->GPIOx_PULLENB_DISABLE_DEFAULT   |=  (0x1FFF<<11);
+#endif
 
 	if(NANDFlash_Open(pBootStatus))
 	{
@@ -607,7 +619,7 @@ RescueBoot:
 						if(UsingFlag && ImageIndex != 0)
 							printf("%d : 0x%08X, %d\r\n", iSectorIndex, pBuf, UsingFlag);
 						if( CTRUE == NANDFlash_ReadSector( pBootStatus, pBuf, UsingFlag) )
-				{
+						{
 							pBootStatus->pReadDoneFlag[iSectorIndex>>5] |= 1<<(iSectorIndex&0x1F);
 							sum--;
 						}

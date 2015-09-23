@@ -74,8 +74,8 @@ static int prints(char **out, const char *string, int width, int pad)
 	return pc;
 }
 
-/* the following should be enough for 32 bit int */
-#define PRINT_BUF_LEN 12
+#define PRINT_BUF_LEN 22	// 0xFFFFFFFFFFFFFFFF = 18446 74407 37095 51615 + sign bit + last '\0'
+//#define PRINT_BUF_LEN 12
 int getquotient(int, int);
 int getremainder(int, int);
 static int printi(char **out, int i, int b, int sg, int width, int pad, int letbase)
@@ -148,7 +148,7 @@ static int print(char **out, const char *format, va_list args )
 				width += *format - '0';
 			}
 			if( *format == 's' ) {
-				register char *s = (char *)va_arg( args, int );
+				register char *s = va_arg( args, char * );
 				pc += prints (out, s?s:"(null)", width, pad);
 				continue;
 			}

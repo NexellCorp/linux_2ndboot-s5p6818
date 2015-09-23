@@ -125,9 +125,9 @@ static CBOOL FSBoot(SDXCBOOTSTATUS * pSDXCBootStatus, struct NX_SecondBootInfo *
 	const char *diskname = "0:";
 	FATFS.fs_type = 0;
 	FATFS.drive = 0;
-	FATFS.reserved = (U32)pSDXCBootStatus;
+	FATFS.diskhandle = (U32*)pSDXCBootStatus;
 
-	printf( "mount to disk 0\r\n" );
+	printf( "mount to fat partition 0\r\n" );
 	if (FR_OK == f_mount(&diskname, &FATFS, 0))
 	{
 		const char *headerfilename = "NXDATA.TBH";
@@ -135,24 +135,23 @@ static CBOOL FSBoot(SDXCBOOTSTATUS * pSDXCBootStatus, struct NX_SecondBootInfo *
 
 		if(FR_OK == f_open(&hfile, headerfilename, FA_READ, &FATFS))
 		{
-			printf( "NXDATA.TBH file size: %d\r\n", hfile.fsize);
+			printf( "%s file size: %d\r\n", headerfilename, hfile.fsize);
 
 			if(CFALSE != ProcessNSIH(&hfile, (U8*)pTBI))
 			{
-				printf( "open NXDATA.TBL %X %X\r\n", &pTBI->SIGNATURE, &pTBI->VECTOR[0]);
+				const char *loaderfilename = "NXDATA.TBL";
+				printf( "open %s\r\n", loaderfilename);
 
 				if(pTBI->SIGNATURE == HEADER_ID)
 				{
-					const char *loaderfilename = "NXDATA.TBL";
 					FIL lfile;
 
-					printf( "hello\r\n");
 					if(FR_OK == f_open(&lfile, loaderfilename, FA_READ, &FATFS))
 					{
 						U32 RSize;
-						printf( "world %X, %X\r\n", pTBI->LOADADDR, pTBI->LAUNCHADDR);
+						printf( "Load Address: %X, Launch Address: %X\r\n", pTBI->LOADADDR, pTBI->LAUNCHADDR);
 
-						if(FR_OK == f_read(&lfile, (void*)pTBI->LOADADDR, lfile.fsize, &RSize))
+						if(FR_OK == f_read(&lfile, (void*)((MPTRS)pTBI->LOADADDR), lfile.fsize, &RSize))
 						{
 							if(RSize == lfile.fsize)
 							{
@@ -174,7 +173,7 @@ static CBOOL FSBoot(SDXCBOOTSTATUS * pSDXCBootStatus, struct NX_SecondBootInfo *
 				}
 				else
 				{
-					printf("Error: 3rd boot Sinature is wrong!\r\n");
+					printf("Error: 3rd boot Sinature is wrong! (SIG:%X)\r\n", pTBI->SIGNATURE);
 				}
 			}
 			f_close(&hfile);

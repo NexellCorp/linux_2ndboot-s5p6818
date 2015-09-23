@@ -14,6 +14,7 @@
 //	Author		: Goofy
 //	Export		:
 //	History		:
+//		2015.04.09	Hans	Add 64bit definition
 //		2007.04.04	Goofy	First draft
 //------------------------------------------------------------------------------
 #ifndef __NX_TYPE_H__
@@ -28,26 +29,32 @@
 //------------------------------------------------------------------------------
 /// @{
 ///
-typedef char			S8;					///< 8bit signed integer(s.7) value
-typedef short			S16;				///< 16bit signed integer(s.15) value
-typedef int				S32;				///< 32bit signed integer(s.31) value
-typedef unsigned char	U8;					///< 8bit unsigned integer value
-typedef unsigned short	U16;				///< 16bit unsigned integer value
-typedef unsigned int	U32;				///< 32bit unsigned integer value
+typedef char			S8;						///< 8bit signed integer(s.7) value
+typedef short			S16;					///< 16bit signed integer(s.15) value
+typedef int				S32;					///< 32bit signed integer(s.31) value
+typedef long			S64;					///< 64bit signed integer(s.63) value
+typedef unsigned char	U8;						///< 8bit unsigned integer value
+typedef unsigned short	U16;					///< 16bit unsigned integer value
+typedef unsigned int	U32;					///< 32bit unsigned integer value
+typedef unsigned long	U64;					///< 64bit unsigned integer vlaue
 
-#define S8_MIN			-128				///< signed char min value
-#define S8_MAX			127					///< signed char max value
-#define S16_MIN			-32768				///< signed short min value
-#define S16_MAX			32767				///< signed short max value
-#define S32_MIN			-2147483648			///< signed integer min value
-#define S32_MAX			2147483647			///< signed integer max value
+#define S8_MIN			-128					///< signed char min value
+#define S8_MAX			127						///< signed char max value
+#define S16_MIN			-32768					///< signed short min value
+#define S16_MAX			32767					///< signed short max value
+#define S32_MIN			-2147483648				///< signed integer min value
+#define S32_MAX			2147483647				///< signed integer max value
+#define S64_MIN			-9223372036854775808	///< signed long min value
+#define S64_MAX			9223372036854775807		///< signed long max value
 
-#define U8_MIN			0					///< unsigned char min value
-#define U8_MAX			255					///< unsigned char max value
-#define U16_MIN			0					///< unsigned short min value
-#define U16_MAX			65535				///< unsigned short max value
-#define U32_MIN			0					///< unsigned integer min value
-#define U32_MAX			4294967295			///< unsigned integer max value
+#define U8_MIN			0						///< unsigned char min value
+#define U8_MAX			255						///< unsigned char max value
+#define U16_MIN			0						///< unsigned short min value
+#define U16_MAX			65535					///< unsigned short max value
+#define U32_MIN			0						///< unsigned integer min value
+#define U32_MAX			4294967295				///< unsigned integer max value
+#define U64_MIN			0						///< unsigned long min value
+#define U64_MAX			18446744073709551615	///< unsigned long max value
 /// @}
 
 //==============================================================================
@@ -89,10 +96,20 @@ typedef S32	CBOOL;							///< boolean type is 32bits signed integer
 NX_CASSERT	(sizeof(S8)		== 1);
 NX_CASSERT	(sizeof(S16)	== 2);
 NX_CASSERT	(sizeof(S32)	== 4);
+NX_CASSERT	(sizeof(S64)	== 8);
 NX_CASSERT	(sizeof(U8)		== 1);
 NX_CASSERT	(sizeof(U16)	== 2);
 NX_CASSERT	(sizeof(U32)	== 4);
+NX_CASSERT	(sizeof(U64)	== 8);
 NX_CASSERT	(sizeof(CBOOL)	== 4);
+
+#ifdef aarch32
+#define MPTRS  U32
+#endif
+
+#ifdef aarch64
+#define MPTRS  U64
+#endif
 /// @}
 
 #endif	// __NX_TYPE_H__

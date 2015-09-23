@@ -45,36 +45,50 @@ struct NX_NANDBootInfo
     U8  tCOS;
     U8  tACC;
     U8  tOCH;
+
     U8  PageSize;           // 512bytes unit
     U8  TIOffset;           // 3rd boot Image copy Offset. 1MB unit.
     U8  CopyCount;          // 3rd boot image copy count
     U8  LoadDevice;         // device chip select number
+
     U32 CRC32;
 };
 
 struct NX_SPIBootInfo
 {
     U8  AddrStep;
-    U8  _Reserved0[3];
+    U8  _Reserved0[2];
+    U8  PortNumber;
+
     U32 _Reserved1  : 24;
     U32 LoadDevice  : 8;
+
     U32 CRC32;
 };
 
 struct NX_UARTBootInfo
 {
     U32 _Reserved0;
+
     U32 _Reserved1  : 24;
     U32 LoadDevice  : 8;
+
     U32 CRC32;
 };
 
 struct NX_SDMMCBootInfo
 {
+#if 1
     U8  PortNumber;
     U8  _Reserved0[3];
+#else
+    U8  _Reserved0[3];
+    U8  PortNumber;
+#endif
+
     U32 _Reserved1  : 24;
     U32 LoadDevice  : 8;
+
     U32 CRC32;
 };
 
@@ -179,7 +193,8 @@ struct NX_SecondBootInfo
     struct NX_DDR3DEV_DRVDSInfo DDR3_DSInfo;    // 0x0C0
     struct NX_DDRPHY_DRVDSInfo  PHY_DSInfo;     // 0x0C4 ~ 0x0CC
 
-    U32 LvlTr_Mode;                 // 0x0D0
+    U16 LvlTr_Mode;                 // 0x0D0 ~ 0x0D1
+    U16 FlyBy_Mode;                 // 0x0D2 ~ 0x0D3
 
     U32 Stub[(0x1EC-0x0D4)/4];      // 0x0D4 ~ 0x1EC
 #endif
@@ -191,7 +206,7 @@ struct NX_SecondBootInfo
     U32 BuildInfo;                  // 0x1F8
 
     U32 SIGNATURE;                  // 0x1FC    "NSIH"
-};
+} __attribute__ ((packed,aligned(4)));
 
 // [0] : Use ICache
 // [1] : Change PLL

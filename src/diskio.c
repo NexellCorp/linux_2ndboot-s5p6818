@@ -77,10 +77,10 @@ DRESULT disk_read (
 	U8 *buff,		/* Data buffer to store read data */
 	U32 sector,		/* Sector address (LBA) */
 	U8 count,		/* Number of sectors to read (1..255) */
-	U32 temp
+	U32 *diskhandle
 )
 {
-	SDXCBOOTSTATUS * pSDXCBootStatus = (SDXCBOOTSTATUS *)temp;
+	SDXCBOOTSTATUS * pSDXCBootStatus = (SDXCBOOTSTATUS *)((MPTRS)diskhandle);
 	dprintf( "disk_read: sector: %d count: %d\r\n", sector, count );
 
 	switch (drv) {

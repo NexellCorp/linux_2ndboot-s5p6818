@@ -124,7 +124,7 @@ FRESULT move_window (
 	{
 		if (sector)
 		{
-			if (disk_read(fs->drive, fs->win, sector, 1, fs->reserved) != RES_OK)
+			if (disk_read(fs->drive, fs->win, sector, 1, fs->diskhandle) != RES_OK)
 				return FR_DISK_ERR;
 			fs->winsect = sector;
 		}
@@ -553,7 +553,7 @@ U8 check_fs (	/* 0:The FAT boot record, 1:Valid boot record but not an FAT, 2:No
 	U32 sect	/* Sector# (lba) to check if it is an FAT boot record or not */
 )
 {
-	if (disk_read(fs->drive, fs->win, sect, 1, fs->reserved) != RES_OK)	/* Load boot record */
+	if (disk_read(fs->drive, fs->win, sect, 1, fs->diskhandle) != RES_OK)	/* Load boot record */
 	{
 		dprintf( "Cannot read disk\r\n" );
 		return 3;
@@ -726,7 +726,7 @@ FRESULT f_mount (	/* FR_OK(0): successful, !=0: any error occured */
 		dprintf("dir base is lba\r\n");
 		fs->dirbase = fs->fatbase + fsize;				/* Root directory start sector (lba) */
 	}
-	printf( "fs type %d\r\n", fmt );
+	dprintf( "fs type %d\r\n", fmt );
 	fs->database = fs->fatbase + fsize + fs->n_rootdir / (SS(fs)/32);	/* Data start sector (lba) */
 
 	fs->winsect = 0;
@@ -901,7 +901,7 @@ FRESULT f_read (
 			{
 				if (fp->csect + cc > fp->fs->csize)	/* Clip at cluster boundary */
 					cc = fp->fs->csize - fp->csect;
-				if (disk_read(fp->fs->drive, rbuff, sect, (U8)cc, fp->fs->reserved) != RES_OK)
+				if (disk_read(fp->fs->drive, rbuff, sect, (U8)cc, fp->fs->diskhandle) != RES_OK)
 				{
 					dprintf( "cannot read disk\r\n" );
 					ABORT(fp->fs, FR_DISK_ERR);

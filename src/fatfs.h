@@ -61,6 +61,7 @@ typedef struct _FATFS {
 	U32	database;	/* Data start sector */
 	U32	winsect;	/* Current sector appearing in the win[] */
 	U32 reserved;
+	U32* diskhandle;
 	U8	win[_MAX_SS];/* Disk access window for Directory/FAT */
 } FATFS;
 

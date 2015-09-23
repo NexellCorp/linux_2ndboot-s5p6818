@@ -11,7 +11,7 @@
 #include "sysbus.h"
 
 #define CFG_TIEOFF_QOS_ID_RESET     (1)
-#define CFG_DREX_BRB_RESET          (0)
+#define CFG_DREX_BRB_RESET          (1)
 #define CFG_DREX_QOS_RESET          (1)
 #define CFG_DREX_QOS_MSG_ON         (0)
 
@@ -29,22 +29,22 @@
 // DREX BRB
 //
 #define NX_DREX_PORT_3_W_BRB_EN_VAL     (0)
-#define NX_DREX_PORT_2_W_BRB_EN_VAL     (0)
-#define NX_DREX_PORT_1_W_BRB_EN_VAL     (0)
-#define NX_DREX_PORT_0_W_BRB_EN_VAL     (0)
+#define NX_DREX_PORT_2_W_BRB_EN_VAL     (1)     // Bottom bus
+#define NX_DREX_PORT_1_W_BRB_EN_VAL     (1)     // CCI400 bus
+#define NX_DREX_PORT_0_W_BRB_EN_VAL     (1)     // Disp bus
 #define NX_DREX_PORT_3_R_BRB_EN_VAL     (0)
-#define NX_DREX_PORT_2_R_BRB_EN_VAL     (0)
-#define NX_DREX_PORT_1_R_BRB_EN_VAL     (0)
-#define NX_DREX_PORT_0_R_BRB_EN_VAL     (0)
+#define NX_DREX_PORT_2_R_BRB_EN_VAL     (1)     // Bottom bus
+#define NX_DREX_PORT_1_R_BRB_EN_VAL     (1)     // CCI400 bus
+#define NX_DREX_PORT_0_R_BRB_EN_VAL     (1)     // Disp bus
 
-#define NX_DREX_PORT_3_W_BRB_TH_VAL     (8)
-#define NX_DREX_PORT_2_W_BRB_TH_VAL     (8)
-#define NX_DREX_PORT_1_W_BRB_TH_VAL     (8)
-#define NX_DREX_PORT_0_W_BRB_TH_VAL     (8)
-#define NX_DREX_PORT_3_R_BRB_TH_VAL     (8)
-#define NX_DREX_PORT_2_R_BRB_TH_VAL     (8)
-#define NX_DREX_PORT_1_R_BRB_TH_VAL     (8)
-#define NX_DREX_PORT_0_R_BRB_TH_VAL     (8)
+#define NX_DREX_PORT_3_W_BRB_TH_VAL     (0xF)
+#define NX_DREX_PORT_2_W_BRB_TH_VAL     (0x3)   // Bottom bus
+#define NX_DREX_PORT_1_W_BRB_TH_VAL     (0x8)   // CCI400 bus
+#define NX_DREX_PORT_0_W_BRB_TH_VAL     (0xF)   // Disp bus
+#define NX_DREX_PORT_3_R_BRB_TH_VAL     (0xF)
+#define NX_DREX_PORT_2_R_BRB_TH_VAL     (0x3)   // Bottom bus
+#define NX_DREX_PORT_1_R_BRB_TH_VAL     (0x8)   // CCI400 bus
+#define NX_DREX_PORT_0_R_BRB_TH_VAL     (0xF)   // Disp bus
 
 
 //------------------------------------------------------------------------------
@@ -157,7 +157,7 @@ static const u8 g_BottomBusSI[4] = {
     NX_BUS_BOTTOM_SI_SLOT_MALI,
     NX_BUS_BOTTOM_SI_SLOT_CODA,
     NX_BUS_BOTTOM_SI_SLOT_SCALER,
-    NX_BUS_BOTTOM_SI_SLOT_DEINTERLACE
+    NX_BUS_BOTTOM_SI_SLOT_MALI  //NX_BUS_BOTTOM_SI_SLOT_DEINTERLACE
 };
 #endif
 
@@ -592,10 +592,18 @@ void set_drex_qos(void)
 #if (CFG_DREX_QOS_RESET == 1)
     for (index = 0; index < NX_DREX_QOS_NUMBER; index++)
     {
+#ifdef aarch32
         temp = (g_DrexQoS[index][1]<<16) | g_DrexQoS[index][0];
-        val = readl(NX_VA_BASE_REG_DREX + NX_DREX_QOS_OFFSET + (index<<3));
+        val = readl((U32)(NX_VA_BASE_REG_DREX + NX_DREX_QOS_OFFSET + (index<<3)));
         if (val != temp)
-            writel( temp, (NX_VA_BASE_REG_DREX + NX_DREX_QOS_OFFSET + (index<<3)) );
+            writel( temp, (U32)(NX_VA_BASE_REG_DREX + NX_DREX_QOS_OFFSET + (index<<3)) );
+#endif
+#ifdef aarch64
+        temp = (g_DrexQoS[index][1]<<16) | g_DrexQoS[index][0];
+        val = readl((U64)(NX_VA_BASE_REG_DREX + NX_DREX_QOS_OFFSET + (index<<3)));
+        if (val != temp)
+            writel( temp, (U64)(NX_VA_BASE_REG_DREX + NX_DREX_QOS_OFFSET + (index<<3)) );
+#endif
     }
 #endif
 

@@ -25,7 +25,7 @@ typedef enum {
 
 DSTATUS disk_initialize (U8);
 DSTATUS disk_status (U8);
-DRESULT disk_read (U8, U8*, U32, U8, U32);
+DRESULT disk_read (U8, U8*, U32, U8, U32*);
 
 
 

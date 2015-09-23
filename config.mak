@@ -1,22 +1,36 @@
 ###########################################################################
 # Build Version info
 ###########################################################################
-VERINFO				= V030
+VERINFO				= V036
 
 ###########################################################################
 # Build Environment
 ###########################################################################
 DEBUG				= n
+
+#OPMODE				= aarch64
+OPMODE				= aarch32
+
+
+MEMTYPE				= DDR3
+#MEMTYPE			= LPDDR3
+
 BUILTINALL			= n
+#INITPMIC			= YES
+INITPMIC			= NO
 
 CHIPNAME			= S5P6818
 
+ifeq ($(BUILTINALL),n)
 #BOOTFROM			= USB
 #BOOTFROM			= SPI
 BOOTFROM			= SDMMC
 #BOOTFROM			= SDFS
 #BOOTFROM			= NAND
 #BOOTFROM			= UART
+else ifeq ($(BUILTINALL),y)
+BOOTFROM			= ALL
+endif
 
 #BOARD				= _pyxis
 #BOARD				= _lynx
@@ -25,24 +39,36 @@ BOOTFROM			= SDMMC
 #BOARD				= _svt
 
 # cross-tool pre-header
+ifeq ($(OPMODE), aarch32)
 ifeq ($(OS),Windows_NT)
 CROSS_TOOL_TOP			=
 CROSS_TOOL			= $(CROSS_TOOL_TOP)arm-none-eabi-
 else
 CROSS_TOOL_TOP			=
-CROSS_TOOL			= $(CROSS_TOOL_TOP)arm-eabi-
+CROSS_TOOL			= $(CROSS_TOOL_TOP)arm-none-eabi-
+endif
+endif
+
+ifeq ($(OPMODE), aarch64)
+ifeq ($(OS),Windows_NT)
+CROSS_TOOL_TOP			=
+CROSS_TOOL			= $(CROSS_TOOL_TOP)aarch64-none-elf-
+else
+CROSS_TOOL_TOP			=
+CROSS_TOOL			= $(CROSS_TOOL_TOP)aarch64-none-elf-
+endif
 endif
 
 ###########################################################################
 # Top Names
 ###########################################################################
-PROJECT_NAME			= $(CHIPNAME)_2ndboot
+PROJECT_NAME			= $(CHIPNAME)_2ndboot_$(OPMODE)_$(MEMTYPE)_$(VERINFO)
 ifeq ($(BUILTINALL),n)
-TARGET_NAME			= $(PROJECT_NAME)_$(VERINFO)$(BOARD)_$(BOOTFROM)
+TARGET_NAME			= $(PROJECT_NAME)$(BOARD)_$(BOOTFROM)
 else ifeq ($(BUILTINALL),y)
-TARGET_NAME			= $(PROJECT_NAME)_$(VERINFO)
+TARGET_NAME			= $(PROJECT_NAME)
 endif
-LDS_NAME			= peridot_2ndboot
+LDS_NAME			= peridot_2ndboot_$(OPMODE)
 
 
 ###########################################################################
@@ -52,9 +78,9 @@ DIR_PROJECT_TOP			=
 
 DIR_OBJOUTPUT			= obj
 ifeq ($(BUILTINALL),n)
-DIR_TARGETOUTPUT		= build$(BOARD)_$(BOOTFROM)
+DIR_TARGETOUTPUT		= build$(BOARD)_$(BOOTFROM)_$(OPMODE)
 else ifeq ($(BUILTINALL),y)
-DIR_TARGETOUTPUT		= build$(BOARD)
+DIR_TARGETOUTPUT		= build$(BOARD)_$(OPMODE)
 endif
 
 CODE_MAIN_INCLUDE		=
@@ -62,16 +88,22 @@ CODE_MAIN_INCLUDE		=
 ###########################################################################
 # Build Environment
 ###########################################################################
+ifeq ($(OPMODE) , aarch32)
 ARCH				= armv7-a
-#ARCH				= cortex-a53
-#CPU				= cortex-a15
+CPU				= cortex-a15
+endif
+ifeq ($(OPMODE) , aarch64)
+ARCH				= armv8-a
 CPU				= cortex-a53
+endif
+
+
 CC				= $(CROSS_TOOL)gcc
 LD 				= $(CROSS_TOOL)ld
 AS 				= $(CROSS_TOOL)as
 AR 				= $(CROSS_TOOL)ar
 MAKEBIN				= $(CROSS_TOOL)objcopy
-BOJCOPY				= $(CROSS_TOOL)objcopy
+OBJCOPY				= $(CROSS_TOOL)objcopy
 RANLIB 				= $(CROSS_TOOL)ranlib
 
 GCC_LIB				= $(shell $(CC) -print-libgcc-file-name)
@@ -111,13 +143,28 @@ ARFLAGS				= rcs
 ARFLAGS_REMOVE			= -d
 ARLIBFLAGS			= -v -s
 
-ASFLAG				= -D__ASSEMBLY__
+ASFLAG				= -D__ASSEMBLY__ -D$(OPMODE)
 
 CFLAGS				+=	-g -Wall				\
 					-Wextra -ffreestanding -fno-builtin	\
-					-msoft-float				\
 					-mlittle-endian				\
 					-mcpu=$(CPU)				\
-					-mstructure-size-boundary=32		\
 					$(CODE_MAIN_INCLUDE)			\
-					-D__arm -DLOAD_FROM_$(BOOTFROM)
+					-D__arm -DLOAD_FROM_$(BOOTFROM)		\
+					-DMEMTYPE_$(MEMTYPE)			\
+					-DINITPMIC_$(INITPMIC)			\
+					-D$(OPMODE)
+
+
+ifeq ($(OPMODE) , aarch32)
+CFLAGS				+=	-msoft-float				\
+					-mstructure-size-boundary=32
+endif
+
+ifeq ($(OPMODE) , aarch64)
+ASFLAG				+=	-march=$(ARCH) -mcpu=$(CPU)
+
+CFLAGS				+=	-mcmodel=small				\
+					-march=$(ARCH)
+endif
+
