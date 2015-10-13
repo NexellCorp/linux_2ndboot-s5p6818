@@ -104,6 +104,8 @@ void BootMain( U32 CPUID )
     //--------------------------------------------------------------------------
     // Set EMA
     //--------------------------------------------------------------------------
+
+    // Set EMA for CPU Cluster0
     temp  = ReadIO32( &pReg_Tieoff->TIEOFFREG[94] ) & ~((0x7 << 23) | (0x7 << 17));
     temp |= ((EMA_VALUE << 23) | (EMA_VALUE << 17));
     WriteIO32( &pReg_Tieoff->TIEOFFREG[94], temp);
@@ -117,13 +119,30 @@ void BootMain( U32 CPUID )
     // Debug Console
     DebugInit();
 
-    SYSMSG("EMA is %s\r\n", (EMA_VALUE==1)?"1.1V":(EMA_VALUE==3)?"1.0V":"0.95V");
-
     WriteIO32(&pReg_Alive->ALIVEPWRGATEREG, 1);
-    if(ReadIO32(&pReg_Alive->ALIVESCRATCHREADREG) & 0xFF)
+
+    if(USBREBOOT_SIGNATURE == ReadIO32(&pReg_Alive->ALIVESCRATCHVALUE5))
+        RomUSBBoot((U32)0x0000009C);
+
+#if (BOOTCOUNT == 1)
+    U32 RBCount = ReadIO32(&pReg_RTC->RTCSCRATCH);
+    pSBI->BootCount = RBCount & 0xFFFFFF;
+    pSBI->ResetCount = RBCount>>24;
+    if(pSBI->BootCount > 0x100000)
     {
-        U8 resetcount = ReadIO32(&pReg_Alive->ALIVESCRATCHREADREG) & 0xFF;
-        U8 xorresetcount = (resetcount>>4)&0xF;
+        pSBI->BootCount = 0;
+        pSBI->ResetCount = 0;
+    }
+    pSBI->BootCount++;
+    WriteIO32(&pReg_RTC->RTCSCRATCH, (pSBI->ResetCount<<24) | pSBI->BootCount);
+
+    printf("Reset Count :\t%d\r\nBoot Count :\t%d\r\n", pSBI->ResetCount, pSBI->BootCount);
+#endif
+    U8 resetcount = ReadIO32(&pReg_Alive->ALIVESCRATCHREADREG) & 0xFF;
+    WriteIO32( &pReg_Alive->ALIVESCRATCHRSTREG, 0xFF);        // clear reboot marker
+    if(resetcount != 0)
+    {
+        U8 xorresetcount = ((resetcount>>4)&0xF)^0xF;
         resetcount &= 0xF;
         if(resetcount == xorresetcount)     // scratch register valid test, only used LSByte
         {
@@ -131,7 +150,6 @@ void BootMain( U32 CPUID )
             {
                 printf("scratch is not cleared, try rom usb boot\r\n");
             // it's watchdog reboot so try usb boot
-                WriteIO32( &pReg_Alive->ALIVESCRATCHRSTREG, 0xFF);        // clear reboot marker
                 WriteIO32( &pReg_Alive->ALIVESCRATCHSETREG, 0xF0);        // reset reboot marker
                 RomUSBBoot((U32)0x0000009C);
             }
@@ -139,15 +157,16 @@ void BootMain( U32 CPUID )
             {
                 resetcount++;
                 printf("boot retry count is %d\r\n", resetcount);
-                xorresetcount = (resetcount^0xF)<<4;
-                resetcount |= xorresetcount;
+                resetcount |= ((resetcount^0xF)<<4);
                 WriteIO32( &pReg_Alive->ALIVESCRATCHSETREG, resetcount);
+#if (BOOTCOUNT == 1)
+                pSBI->ResetCount++;
+                WriteIO32(&pReg_RTC->RTCSCRATCH, (pSBI->ResetCount<<24) | pSBI->BootCount);
+#endif
             }
-        }
-        else
+        }else
         {
             // first boot, so alive scratch register is broken. reset count
-            WriteIO32( &pReg_Alive->ALIVESCRATCHRSTREG, 0xFF);        // only byte 0 is used
             WriteIO32( &pReg_Alive->ALIVESCRATCHSETREG, 0xE1);        // first count;
             printf("first boot, scratch is cleared\r\n");
         }
@@ -155,7 +174,6 @@ void BootMain( U32 CPUID )
     else
     {
         // alive reset code is broken. reset count
-        WriteIO32( &pReg_Alive->ALIVESCRATCHRSTREG, 0xFF);        // only byte 0 is used
         WriteIO32( &pReg_Alive->ALIVESCRATCHSETREG, 0xE1);        // first count;
         printf("scratch is broken, clear\r\n");
     }
@@ -164,20 +182,20 @@ void BootMain( U32 CPUID )
         // set watchdog timer
         printf("watchdog timer start\r\n");
         SetIO32(&pReg_RstCon->REGRST[RESETINDEX_OF_WDT_MODULE_PRESETn>>5], 1<<(RESETINDEX_OF_WDT_MODULE_PRESETn&0x1F));
-        WriteIO32( &pReg_WDT->WTCON,    0xFF<<8 |                 // prescaler value
-                            0x03<<3 |                             // division factor (3:128)
-                            0x01<<2);                             // watchdog reset enable
-        WriteIO32( &pReg_WDT->WTDAT,    0xFFFF);                  // 200MHz/256/128 = 6103.515625, 65536/6103.5 = 10.74 sec
-        SetIO32( &pReg_WDT->WTCON,    0x01<<5);                   // watchdog timer enable
+        SetIO32(&pReg_RstCon->REGRST[RESETINDEX_OF_WDT_MODULE_nPOR>>5], 1<<(RESETINDEX_OF_WDT_MODULE_nPOR&0x1F));
+        WriteIO32( &pReg_WDT->WTCON, 0xFF<<8 |          // prescaler value
+                                     0x03<<3 |          // division factor (3:128)
+                                     0x01<<2);          // watchdog reset enable
+        WriteIO32( &pReg_WDT->WTCNT, 0xFFFF);           // 200MHz/256/128 = 6103.515625, 65536/6103.5 = 10.74 sec
+//        SetIO32  ( &pReg_WDT->WTCON, 0x01<<5);          // watchdog timer enable
 #endif
     }
 
     //--------------------------------------------------------------------------
     // Get resume information.
     //--------------------------------------------------------------------------
-//    WriteIO32(&pReg_Alive->ALIVEPWRGATEREG, 1);
     sign = ReadIO32(&pReg_Alive->ALIVESCRATCHREADREG);
-	if ((SUSPEND_SIGNATURE == (sign&0xFFFFFF00)) && ReadIO32(&pReg_Alive->WAKEUPSTATUS))
+    if ((SUSPEND_SIGNATURE == (sign&0xFFFFFF00)) && ReadIO32(&pReg_Alive->WAKEUPSTATUS))
     {
         isResume = 1;
     }
@@ -191,10 +209,13 @@ void BootMain( U32 CPUID )
 #endif
 
 
+    SYSMSG("EMA is %s\r\n", (EMA_VALUE==1)?"1.1V":(EMA_VALUE==3)?"1.0V":"0.95V");
+
+
     printf("\r\n\nworking to aarch%d\r\nwaiting for pll change..\r\n", sizeof(void*)*8);
 
     while(!DebugIsTXEmpty());
-    while(DebugIsBusy() && temp--);
+    while(DebugIsBusy());
 
 
     //--------------------------------------------------------------------------
@@ -256,6 +277,7 @@ void BootMain( U32 CPUID )
     initCCI400();
 #endif
 
+
     printf( "Wakeup CPU " );
 
 #if (MULTICORE_BRING_UP == 1)
@@ -312,10 +334,12 @@ void BootMain( U32 CPUID )
         printf( "Loading from spi...\r\n" );
         Result = iSPIBOOT(pTBI);        // for SPI boot
         break;
+#if 0
     case BOOT_FROM_NAND:
         printf( "Loading from nand...\r\n" );
         Result = iNANDBOOTEC(pTBI);     // for NAND boot
         break;
+#endif
     case BOOT_FROM_SDMMC:
         printf( "Loading from sdmmc...\r\n" );
         Result = iSDXCBOOT(pTBI);       // for SD boot

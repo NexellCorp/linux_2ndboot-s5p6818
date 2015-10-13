@@ -20,67 +20,17 @@
 #include "sysHeader.h"
 void DMC_Delay(int milisecond);
 
-#define SET_AUTO_VOLTAGE_CONTROL_FOR_CORE   (1)
-#define ARRAY_SIZE(x)       (sizeof(x) / sizeof((x)[0]))
+#define AUTO_VOLTAGE_CONTROL        (1)
+#define ARM_VOLTAGE_CONTROL_SKIP    (0)
+#define ARRAY_SIZE(x)               (sizeof(x) / sizeof((x)[0]))
 
 
 //------------------------------------------------------------------------------
 #if defined( INITPMIC_YES )
-#define MP8845C_REG_VSEL                0x00
-#define MP8845C_REG_SYSCNTL1            0x01
-#define MP8845C_REG_SYSCNTL2            0x02
-#define MP8845C_REG_ID1                 0x03
-#define MP8845C_REG_ID2                 0x04
-#define MP8845C_REG_STATUS              0x05
 
-#define AXP228_DEF_DDC1_VOL_MIN         1600000 /* UINT = 1uV, 1.6V */
-#define AXP228_DEF_DDC1_VOL_MAX         3400000 /* UINT = 1uV, 3.4V */
-
-#define AXP228_DEF_DDC234_VOL_MIN       660000  /* UINT = 1uV, 0.66V */
-#define AXP228_DEF_DDC24_VOL_MAX        1540000 /* UINT = 1uV, 1.54V */
-#define AXP228_DEF_DDC3_VOL_MAX         1860000 /* UINT = 1uV, 1.86V */
-#define AXP228_DEF_DDC5_VOL_MIN         1050000 /* UINT = 1uV, 1.05V */
-#define AXP228_DEF_DDC5_VOL_MAX         2600000 /* UINT = 1uV, 2.60V */
-
-#define AXP228_DEF_DDC1_VOL_STEP        100000  /* UINT = 1uV, 100.0mV */
-#define AXP228_DEF_DDC234_VOL_STEP      20000   /* UINT = 1uV, 20.0mV */
-#define AXP228_DEF_DDC5_VOL_STEP        50000   /* UINT = 1uV, 50.0mV */
-
-//#define AXP228_DEF_DDC2_VOL             1200000 /* VAL(uV) = 0: 0.60 ~ 1.54V, Step 20 mV, default(OTP) = 1.1V */
-#define AXP228_DEF_DDC2_VOL             1300000 /* VAL(uV) = 0: 0.60 ~ 1.54V, Step 20 mV, default(OTP) = 1.1V */
-#define AXP228_DEF_DDC4_VOL             1350000 /* VAL(uV) = 0: 0.60 ~ 1.54V, Step 20 mV, default(OTP) = 1.5V */
-#define AXP228_DEF_DDC5_VOL             1350000 /* VAL(uV) = 0: 0.60 ~ 1.54V, Step 50 mV, default(OTP) = 1.5V */
-
-#define AXP228_REG_DC1VOL               0x21
-#define AXP228_REG_DC2VOL               0x22
-#define AXP228_REG_DC3VOL               0x23
-#define AXP228_REG_DC4VOL               0x24
-#define AXP228_REG_DC5VOL               0x25
-
-
-#define NXE2000_DEF_DDCx_VOL_MIN        600000  /* UINT = 1uV, 0.6V */
-#define NXE2000_DEF_DDCx_VOL_MAX        3500000 /* UINT = 1uV, 3.5V */
-#define NXE2000_DEF_DDCx_VOL_STEP       12500   /* UINT = 1uV, 12.5mV */
-
-#define NXE2000_DEF_DDC1_VOL            1100000 /* VAL(uV) = 0: 0.60 ~ 3.5V, Step 12.5 mV, default(OTP) = 1.3V */
-#define NXE2000_DEF_DDC2_VOL            1100000 /* VAL(uV) = 0: 0.60 ~ 3.5V, Step 12.5 mV, default(OTP) = 1.1V */
-#define NXE2000_DEF_DDC3_VOL            3300000 /* VAL(uV) = 0: 0.60 ~ 3.5V, Step 12.5 mV, default(OTP) = 3.3V */
-#define NXE2000_DEF_DDC4_VOL            1500000 /* VAL(uV) = 0: 0.60 ~ 3.5V, Step 12.5 mV, default(OTP) = 1.6V */
-#define NXE2000_DEF_DDC5_VOL            1500000 /* VAL(uV) = 0: 0.60 ~ 3.5V, Step 12.5 mV, default(OTP) = 1.6V */
-
-#define NXE2000_REG_DC1VOL              0x36
-#define NXE2000_REG_DC2VOL              0x37
-#define NXE2000_REG_DC3VOL              0x38
-#define NXE2000_REG_DC4VOL              0x39
-#define NXE2000_REG_DC5VOL              0x3A
-
-
-#define I2C_ADDR_NXE2000   (0x64 >> 1)  // SVT & ASB
-#define I2C_ADDR_MP8845    (0x38 >> 1)  // SVT & ASB
-#define I2C_ADDR_AXP228    (0x68 >> 1)  // DroneL
-
-#define DRONE_PMIC_INIT
+//#define DRONE_PMIC_INIT
 //#define BF700_PMIC_INIT
+//#define AVN_PMIC_INIT
 //#define SVT_PMIC_INIT
 //#define ASB_PMIC_INIT
 
@@ -102,6 +52,18 @@ void DMC_Delay(int milisecond);
 #define MP8845_ARM_I2C_GPIO_GRP     4   // E group, FineDigital VDDB_1.2V (arm)
 #define MP8845_ARM_I2C_SCL          11
 #define MP8845_ARM_I2C_SDA          10
+
+#define MP8845_PMIC_INIT            (1)
+#endif
+
+#ifdef AVN_PMIC_INIT
+#define MP8845_CORE_I2C_GPIO_GRP    4   // E group, FineDigital VDDA_1.2V (core)
+#define MP8845_CORE_I2C_SCL         11
+#define MP8845_CORE_I2C_SDA         10
+
+#define MP8845_ARM_I2C_GPIO_GRP     4   // E group, FineDigital VDDB_1.2V (arm)
+#define MP8845_ARM_I2C_SCL          9
+#define MP8845_ARM_I2C_SDA          8
 
 #define MP8845_PMIC_INIT            (1)
 #endif
@@ -132,6 +94,16 @@ void DMC_Delay(int milisecond);
 #define MP8845_PMIC_INIT            (1)
 #endif
 
+#if (AXP_I2C_GPIO_GRP > -1)
+#include "pmic_axp228.h"
+#endif
+#if (NXE2000_I2C_GPIO_GRP > -1)
+#include "pmic_nxe2000.h"
+#endif
+#if (MP8845_PMIC_INIT == 1)
+#include "pmic_mp8845.h"
+#endif
+
 extern void  I2C_Init( U8 gpioGRP, U8 gpioSCL, U8 gpioSDA );
 //extern void  I2C_Deinit( void );
 extern CBOOL I2C_Read(U8 DeviceAddress, U8 RegisterAddress, U8* pData, U32 Length);
@@ -150,19 +122,19 @@ static const U8 MP8845_mV_list[] = {
 #define MP8845_VOUT_ARRAY_SIZE  (int)(sizeof(MP8845_mV_list)/sizeof(MP8845_mV_list[0]))
 #endif  // #if (MP8845_PMIC_INIT == 1)
 
-#if (SET_AUTO_VOLTAGE_CONTROL_FOR_CORE == 1)
+#if (AUTO_VOLTAGE_CONTROL == 1)
 struct vdd_core_tb_info {
-    int ids;
-    int ro;
-    int mV;
+    U8  ids;
+    U8  ro;
+    U16 mV;
 };
 
 static const struct vdd_core_tb_info vdd_core_tables[] = {
-    [0] = { .ids = 6,  .ro = 70,  .mV = 1200 },
-    [1] = { .ids = 12, .ro = 110, .mV = 1175 },
-    [2] = { .ids = 30, .ro = 150, .mV = 1150 },
-    [3] = { .ids = 60, .ro = 180, .mV = 1100 },
-    [4] = { .ids = 60, .ro = 180, .mV = 1050 }
+    [0] = { .ids = 6,  .ro = 90,  .mV = 1225 },
+    [1] = { .ids = 15, .ro = 130, .mV = 1175 },
+    [2] = { .ids = 38, .ro = 170, .mV = 1125 },
+    [3] = { .ids = 78, .ro = 200, .mV = 1075 },
+    [4] = { .ids = 78, .ro = 200, .mV = 1025 }
 };
 
 #define VDD_CORE_ARRAY_SIZE     (int)(sizeof(vdd_core_tables)/sizeof(vdd_core_tables[0]))
@@ -213,7 +185,7 @@ int getASVIndex(U32 ecid_1)
 
     return field;
 }
-#endif  // #if (SET_AUTO_VOLTAGE_CONTROL_FOR_CORE == 1)
+#endif  // #if (AUTO_VOLTAGE_CONTROL == 1)
 
 #if (AXP_I2C_GPIO_GRP > -1)
 static U8 axp228_get_dcdc_step(int want_vol, int step, int min, int max)
@@ -256,17 +228,16 @@ static U8 nxe2000_get_dcdc_step(int want_vol)
 #endif
 
 #ifdef DRONE_PMIC_INIT
-#if (SET_AUTO_VOLTAGE_CONTROL_FOR_CORE == 1)
 inline void PMIC_Drone(void)
 {
     U8 pData[4];
-#define DCDC_SYS    (1<<3)    // VCC1P5_SYS
-#define DCDC_DDR    (1<<4)    // VCC1P5_DDR
+    U32 ecid_1 = ReadIO32(PHY_BASEADDR_ECID_MODULE + (1<<2));
+    int asv_idx = getASVIndex(ecid_1);
+    const struct vdd_core_tb_info *vdd_tb = &vdd_core_tables[asv_idx];
 
     I2C_Init(AXP_I2C_GPIO_GRP, AXP_I2C_SCL, AXP_I2C_SDA);
 
     I2C_Read(I2C_ADDR_AXP228, 0x80, pData, 1);
-//      printf("I2C addr 80 %X\r\n", pData[0]);
     pData[0] = (pData[0] & 0x1F) | DCDC_SYS | DCDC_DDR;
     I2C_Write(I2C_ADDR_AXP228, 0x80, pData, 1);
 
@@ -275,11 +246,19 @@ inline void PMIC_Drone(void)
     pData[0] |= 0x10;
     I2C_Write(I2C_ADDR_AXP228, 0x37, pData, 1);
 
-    // Set voltage.
-//    pData[0] = axp228_get_dcdc_step(AXP228_DEF_DDC2_VOL, AXP228_DEF_DDCx_VOL_STEP, AXP228_DEF_DDC2345_VOL_MIN, AXP228_DEF_DDC245_VOL_MAX);
-//    I2C_Write(I2C_ADDR_AXP228, AXP228_REG_DC2VOL, pData, 1);
+    //
+    // ARM voltage change
+    //
+#if (ARM_VOLTAGE_CONTROL_SKIP == 0)
+#if (AUTO_VOLTAGE_CONTROL == 1)
+    pData[0] = axp228_get_dcdc_step((vdd_tb->mV * 1000), AXP228_DEF_DDC234_VOL_STEP, AXP228_DEF_DDC234_VOL_MIN, AXP228_DEF_DDC24_VOL_MAX);
+#else
+    pData[0] = axp228_get_dcdc_step(AXP228_DEF_DDC2_VOL, AXP228_DEF_DDC234_VOL_STEP, AXP228_DEF_DDC234_VOL_MIN, AXP228_DEF_DDC24_VOL_MAX);
+#endif
+    I2C_Write(I2C_ADDR_AXP228, AXP228_REG_DC2VOL, pData, 1);
+#endif
 
-#if 1
+#if 0
     // Set voltage of DCDC4.
     pData[0] = axp228_get_dcdc_step(AXP228_DEF_DDC4_VOL, AXP228_DEF_DDC234_VOL_STEP, AXP228_DEF_DDC234_VOL_MIN, AXP228_DEF_DDC24_VOL_MAX);
     I2C_Write(I2C_ADDR_AXP228, AXP228_REG_DC4VOL, pData, 1);
@@ -289,46 +268,15 @@ inline void PMIC_Drone(void)
     I2C_Write(I2C_ADDR_AXP228, AXP228_REG_DC5VOL, pData, 1);
 #endif
 }
-#else
-inline void PMIC_Drone(void)
-{
-    U8 pData[4];
-#define DCDC_SYS    (1<<3)  // VCC1P5_SYS
-#define DCDC_DDR    (1<<4)  // VCC1P5_DDR
-
-    I2C_Init(AXP_I2C_GPIO_GRP, AXP_I2C_SCL, AXP_I2C_SDA);
-
-    // PFM -> PWM mode
-#if 0
-    I2C_Read(I2C_ADDR_AXP228, 0x80, pData, 1);
-//    printf("I2C addr 80 %X\r\n", pData[0]);
-    pData[0] = (pData[0] & 0x1F) | DCDC_SYS | DCDC_DDR;
-    I2C_Write(I2C_ADDR_AXP228, 0x80, pData, 1);
-#endif
-
-    //
-    // ARM voltage change
-    //
-
-    // Set bridge DCDC2 and DCDC3
-    I2C_Read(I2C_ADDR_AXP228, 0x37, pData, 1);
-    pData[0] |= 0x10;
-    I2C_Write(I2C_ADDR_AXP228, 0x37, pData, 1);
-
-    // Set voltage.
-    pData[0] = axp228_get_dcdc_step(AXP228_DEF_DDC2_VOL, AXP228_DEF_DDCx_VOL_STEP, AXP228_DEF_DDC2345_VOL_MIN, AXP228_DEF_DDC245_VOL_MAX);
-    I2C_Write(I2C_ADDR_AXP228, AXP228_REG_DC2VOL, pData, 1);
-}
-#endif
 #endif     // DRONE
 
-#ifdef BF700_PMIC_INIT
-#if (SET_AUTO_VOLTAGE_CONTROL_FOR_CORE == 1)
-inline void PMIC_BF7000(void)
+#if defined( BF700_PMIC_INIT ) || defined( AVN_PMIC_INIT )
+inline void PMIC_AVN(void)
 {
     U8 pData[4];
     U32 ecid_1 = ReadIO32(PHY_BASEADDR_ECID_MODULE + (1<<2));
     int asv_idx = getASVIndex(ecid_1);
+
     //
     // I2C init for CORE power.
     //
@@ -342,25 +290,17 @@ inline void PMIC_BF7000(void)
     //
     // Core voltage change
     //
-#if (MP8845_PMIC_INIT == 1)
-    if (ecid_1)
-    {
-        U8 Data;
-        printf("ecid:%x, asv index:%d\r\n", ecid_1, asv_idx);
-        I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
-        pData[0] |= 1<<5;
-        I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
+    I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
+    pData[0] |= 1<<5;
+    I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
 
-        pData[0] = MP8845_mV_list[asv_idx] | 1<<7;
-        I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
-        Data = pData[0];
-        I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
-        if(Data != pData[0])
-        {
-            printf("verify core voltage code write:%d, read:%d\r\n", Data, pData[0]);
-        }
-    }
+#if defined( BF700_PMIC_INIT )
+    pData[0] = 90 | 1<<7;     // 1.2V
 #endif
+#if defined( AVN_PMIC_INIT )
+    pData[0] = 75 | 1<<7;     // 1.1V
+#endif
+    I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
 
     //
     // I2C init for ARM power.
@@ -375,79 +315,38 @@ inline void PMIC_BF7000(void)
     //
     // ARM voltage change
     //
-#if (MP8845_PMIC_INIT == 1)
+#if (ARM_VOLTAGE_CONTROL_SKIP == 0)
+    I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
+    pData[0] |= 1<<5;
+    I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
+
+#if (AUTO_VOLTAGE_CONTROL == 1)
     if (ecid_1)
     {
         U8 Data;
-        I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
-        pData[0] |= 1<<5;
-        I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
 
         pData[0] = MP8845_mV_list[asv_idx] | 1<<7;
-        I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
         Data = pData[0];
+        I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
+
         I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
+
         if(Data != pData[0])
         {
             printf("verify arm voltage code write:%d, read:%d\r\n", Data, pData[0]);
         }
     }
-#endif
-}
 #else
-inline void PMIC_BF7000(void)
-{
-    U8 pData[4];
 
-    //
-    // I2C init for CORE power.
-    //
-    I2C_Init(MP8845_CORE_I2C_GPIO_GRP, MP8845_CORE_I2C_SCL, MP8845_CORE_I2C_SDA);
-
-    // PFM -> PWM mode
-    I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL1, pData, 1);
-    pData[0] |= 1<<0;
-    I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL1, pData, 1);
-
-    //
-    // Core voltage change
-    //
-#if 0
-    I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
-    pData[0] |= 1<<5;
-    I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
-
-    pData[0] = 90 | 1<<7;     // 90: 1.2V
+//    pData[0] = 75 | 1<<7;   // 1.1V
+    pData[0] = 80 | 1<<7;   // 1.135V
     I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
 #endif
-
-    //
-    // I2C init for ARM power.
-    //
-    I2C_Init(MP8845_ARM_I2C_GPIO_GRP, MP8845_ARM_I2C_SCL, MP8845_ARM_I2C_SDA);
-
-    // PFM -> PWM mode
-    I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL1, pData, 1);
-    pData[0] |= 1<<0;
-    I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL1, pData, 1);
-
-    //
-    // ARM voltage change
-    //
-#if 0
-    I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
-    pData[0] |= 1<<5;
-    I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
-
-    pData[0] = 90 | 1<<7;     // 90: 1.2V
-    I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
 #endif
 }
-#endif
 #endif     // BF700
 
 #ifdef SVT_PMIC_INIT
-#if (SET_AUTO_VOLTAGE_CONTROL_FOR_CORE == 1)
 inline void PMIC_SVT(void)
 {
     U8 pData[4];
@@ -468,62 +367,30 @@ inline void PMIC_SVT(void)
     //
     // Core voltage change
     //
-#if (MP8845_PMIC_INIT == 1)
-    if (ecid_1)
-    {
-        I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
-        pData[0] |= 1<<5;
-        I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
-
-        pData[0] = MP8845_mV_list[asv_idx] | 1<<7;
-        I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
-    }
-#endif
-
-    pData[0] = nxe2000_get_dcdc_step(NXE2000_DEF_DDC1_VOL);
-    I2C_Write(I2C_ADDR_NXE2000, NXE2000_REG_DC1VOL, pData, 1);
-
-    pData[0] = nxe2000_get_dcdc_step(vdd_tb->mV * 1000);
-    I2C_Write(I2C_ADDR_NXE2000, NXE2000_REG_DC2VOL, pData, 1);  // Core - second power
-
-    pData[0] = nxe2000_get_dcdc_step(NXE2000_DEF_DDC4_VOL);
-    I2C_Write(I2C_ADDR_NXE2000, NXE2000_REG_DC4VOL, pData, 1);
-
-//    pData[0] = nxe2000_get_dcdc_step(NXE2000_DEF_DDC5_VOL);
-    I2C_Write(I2C_ADDR_NXE2000, NXE2000_REG_DC5VOL, pData, 1);
-}
-#else
-inline void PMIC_SVT(void)
-{
-    U8 pData[4];
-
-    //
-    // I2C init for CORE & NXE2000 power.
-    //
-    I2C_Init(NXE2000_I2C_GPIO_GRP, NXE2000_I2C_SCL, NXE2000_I2C_SDA);
-
-    // PFM -> PWM mode
-    I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL1, pData, 1);
-    pData[0] |= 1<<0;
-    I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL1, pData, 1);
-
-    //
-    // Core voltage change
-    //
-#if 0
+#if 1
     I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
     pData[0] |= 1<<5;
     I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
 
-    pData[0] = 90 | 1<<7;     // 90: 1.2V
+//    pData[0] = 90 | 1<<7;   // 90: 1.2V
+    pData[0] = 80 | 1<<7;   // 80: 1.135V
     I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
+#else
+    pData[0] = nxe2000_get_dcdc_step(NXE2000_DEF_DDC2_VOL);
+    I2C_Write(I2C_ADDR_NXE2000, NXE2000_REG_DC2VOL, pData, 1);  // Core - second power
 #endif
 
+    //
+    // ARM voltage change
+    //
+#if (ARM_VOLTAGE_CONTROL_SKIP == 0)
+#if (AUTO_VOLTAGE_CONTROL == 1)
     pData[0] = nxe2000_get_dcdc_step(NXE2000_DEF_DDC1_VOL);
+#else
+    pData[0] = nxe2000_get_dcdc_step(vdd_tb->mV * 1000);
+#endif
     I2C_Write(I2C_ADDR_NXE2000, NXE2000_REG_DC1VOL, pData, 1);
-
-//      pData[0] = nxe2000_get_dcdc_step(NXE2000_DEF_DDC2_VOL);
-    I2C_Write(I2C_ADDR_NXE2000, NXE2000_REG_DC2VOL, pData, 1);
+#endif
 
     pData[0] = nxe2000_get_dcdc_step(NXE2000_DEF_DDC4_VOL);
     I2C_Write(I2C_ADDR_NXE2000, NXE2000_REG_DC4VOL, pData, 1);
@@ -531,11 +398,9 @@ inline void PMIC_SVT(void)
 //    pData[0] = nxe2000_get_dcdc_step(NXE2000_DEF_DDC5_VOL);
     I2C_Write(I2C_ADDR_NXE2000, NXE2000_REG_DC5VOL, pData, 1);
 }
-#endif
 #endif     // SVT
 
 #ifdef ASB_PMIC_INIT
-#if (SET_AUTO_VOLTAGE_CONTROL_FOR_CORE == 1)
 inline void PMIC_ASB(void)
 {
     U8 pData[4];
@@ -556,7 +421,31 @@ inline void PMIC_ASB(void)
     //
     // Core voltage change
     //
-#if (MP8845_PMIC_INIT == 1)
+    I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
+    pData[0] |= 1<<5;
+    I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
+
+//    pData[0] = 90 | 1<<7;   // 90: 1.2V
+    pData[0] = 80 | 1<<7;   // 80: 1.135V
+    I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
+
+
+    //
+    // I2C init for ARM & NXE2000 power.
+    //
+    I2C_Init(NXE2000_I2C_GPIO_GRP, NXE2000_I2C_SCL, NXE2000_I2C_SDA);
+
+    // PFM -> PWM mode
+    I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL1, pData, 1);
+    pData[0] |= 1<<0;
+    I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL1, pData, 1);
+
+    //
+    // ARM voltage change
+    //
+#if (ARM_VOLTAGE_CONTROL_SKIP == 0)
+#if 1
+#if (AUTO_VOLTAGE_CONTROL == 1)
     if (ecid_1)
     {
         I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
@@ -567,117 +456,21 @@ inline void PMIC_ASB(void)
         I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
     }
 #endif
-
-    //
-    // I2C init for ARM & NXE2000 power.
-    //
-    I2C_Init(NXE2000_I2C_GPIO_GRP, NXE2000_I2C_SCL, NXE2000_I2C_SDA);
-
-    // PFM -> PWM mode
-    I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL1, pData, 1);
-    pData[0] |= 1<<0;
-    I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL1, pData, 1);
-
-    //
-    // ARM voltage change
-    //
-#if 1
-#if (MP8845_PMIC_INIT == 1)
-    if (ecid_1)
-    {
-        I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
-        pData[0] |= 1<<5;
-        I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
-
-//        pData[0] = 90 | 1<<7;    // 90: 1.2V
-        pData[0] = 80 | 1<<7;    // 80: 1.135V
-        I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
-    }
-#endif
-#endif
-
-    pData[0] = nxe2000_get_dcdc_step(NXE2000_DEF_DDC1_VOL);
-    I2C_Write(I2C_ADDR_NXE2000, NXE2000_REG_DC1VOL, pData, 1);
-
-    pData[0] = nxe2000_get_dcdc_step(vdd_tb->mV * 1000);
-    I2C_Write(I2C_ADDR_NXE2000, NXE2000_REG_DC2VOL, pData, 1);  // Core - second power
-
-    //
-    // ARM voltage change
-    //
-#if 1
-    I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
-    pData[0] |= 1<<5;
-    I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
-
-    pData[0] = 90 | 1<<7;    // 90: 1.2V
-    I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
-#endif
-}
 #else
-inline void PMIC_ASB(void)
-{
-    U8 pData[4];
 
-    //
-    // I2C init for CORE power.
-    //
-    I2C_Init(MP8845_I2C_GPIO_GRP, MP8845_I2C_SCL, MP8845_I2C_SDA);
-
-    // PFM -> PWM mode
-    I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL1, pData, 1);
-    pData[0] |= 1<<0;
-    I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL1, pData, 1);
-
-    //
-    // Core voltage change
-    //
-#if 0
-    I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
-    pData[0] |= 1<<5;
-    I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
-
-    pData[0] = 90 | 1<<7;    // 90: 1.20V
-//    pData[0] = 83 | 1<<7;    // 83: 1.15V
-    I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
-#endif
-
-    //
-    // I2C init for ARM & NXE2000 power.
-    //
-    I2C_Init(NXE2000_I2C_GPIO_GRP, NXE2000_I2C_SCL, NXE2000_I2C_SDA);
-
-    // PFM -> PWM mode
-    I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL1, pData, 1);
-    pData[0] |= 1<<0;
-    I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL1, pData, 1);
-
-    //
-    // ARM voltage change
-    //
-#if 0
-    I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
-    pData[0] |= 1<<5;
-    I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
-
-    pData[0] = 90 | 1<<7;    // 90: 1.20V
-//    pData[0] = 83 | 1<<7;    // 83: 1.15V
-    I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
-#endif
-
+#if (AUTO_VOLTAGE_CONTROL == 1)
     pData[0] = nxe2000_get_dcdc_step(NXE2000_DEF_DDC1_VOL);
-    I2C_Write(I2C_ADDR_NXE2000, NXE2000_REG_DC1VOL, pData, 1);
-
-//    pData[0] = nxe2000_get_dcdc_step(NXE2000_DEF_DDC2_VOL);
-    I2C_Write(I2C_ADDR_NXE2000, NXE2000_REG_DC2VOL, pData, 1);
-
-    pData[0] = nxe2000_get_dcdc_step(NXE2000_DEF_DDC4_VOL);
-    I2C_Write(I2C_ADDR_NXE2000, NXE2000_REG_DC4VOL, pData, 1);
-
-//    pData[0] = nxe2000_get_dcdc_step(NXE2000_DEF_DDC5_VOL);
-    I2C_Write(I2C_ADDR_NXE2000, NXE2000_REG_DC5VOL, pData, 1);
-}
+#else
+    pData[0] = nxe2000_get_dcdc_step(vdd_tb->mV * 1000);
 #endif
+    I2C_Write(I2C_ADDR_NXE2000, NXE2000_REG_DC1VOL, pData, 1);
+#endif
+#endif
+
+//    pData[0] = nxe2000_get_dcdc_step(vdd_tb->mV * 1000);
+    pData[0] = nxe2000_get_dcdc_step(NXE2000_DEF_DDC2_VOL);
+    I2C_Write(I2C_ADDR_NXE2000, NXE2000_REG_DC2VOL, pData, 1);  // Core - second power
+}
 #endif     // ASB
 
 void initPMIC(void)
@@ -686,8 +479,8 @@ void initPMIC(void)
     PMIC_Drone();
 #endif   // DRONE
 
-#ifdef BF700_PMIC_INIT
-    PMIC_BF7000();
+#if defined( BF700_PMIC_INIT ) || defined( AVN_PMIC_INIT )
+    PMIC_AVN();
 #endif   // BF700
 
 #ifdef SVT_PMIC_INIT

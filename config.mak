@@ -6,6 +6,9 @@ VERINFO				= V036
 ###########################################################################
 # Build Environment
 ###########################################################################
+
+CHIPNAME			= S5P6818
+
 DEBUG				= n
 
 #OPMODE				= aarch64
@@ -15,11 +18,9 @@ OPMODE				= aarch32
 MEMTYPE				= DDR3
 #MEMTYPE			= LPDDR3
 
-BUILTINALL			= n
-#INITPMIC			= YES
-INITPMIC			= NO
-
-CHIPNAME			= S5P6818
+BUILTINALL			= y
+INITPMIC			= YES
+#INITPMIC			= NO
 
 ifeq ($(BUILTINALL),n)
 #BOOTFROM			= USB
@@ -32,11 +33,11 @@ else ifeq ($(BUILTINALL),y)
 BOOTFROM			= ALL
 endif
 
-#BOARD				= _pyxis
-#BOARD				= _lynx
-#BOARD				= _vtk
-#BOARD				= _drone
-#BOARD				= _svt
+#BOARD				= SVT
+#BOARD				= ASB
+BOARD				= DRONE
+#BOARD				= AVN
+#BOARD				= BF700
 
 # cross-tool pre-header
 ifeq ($(OPMODE), aarch32)
@@ -63,11 +64,14 @@ endif
 # Top Names
 ###########################################################################
 PROJECT_NAME			= $(CHIPNAME)_2ndboot_$(OPMODE)_$(MEMTYPE)_$(VERINFO)
-ifeq ($(BUILTINALL),n)
-TARGET_NAME			= $(PROJECT_NAME)$(BOARD)_$(BOOTFROM)
-else ifeq ($(BUILTINALL),y)
-TARGET_NAME			= $(PROJECT_NAME)
+
+ifeq ($(INITPMIC), YES)
+TARGET_NAME			= $(PROJECT_NAME)_$(BOARD)_$(BOOTFROM)
 endif
+ifeq ($(INITPMIC), NO)
+TARGET_NAME			= $(PROJECT_NAME)_$(BOOTFROM)
+endif
+
 LDS_NAME			= peridot_2ndboot_$(OPMODE)
 
 
@@ -78,9 +82,9 @@ DIR_PROJECT_TOP			=
 
 DIR_OBJOUTPUT			= obj
 ifeq ($(BUILTINALL),n)
-DIR_TARGETOUTPUT		= build$(BOARD)_$(BOOTFROM)_$(OPMODE)
+DIR_TARGETOUTPUT		= build_$(BOARD)_$(BOOTFROM)_$(OPMODE)
 else ifeq ($(BUILTINALL),y)
-DIR_TARGETOUTPUT		= build$(BOARD)_$(OPMODE)
+DIR_TARGETOUTPUT		= build_$(BOARD)_$(OPMODE)
 endif
 
 CODE_MAIN_INCLUDE		=
@@ -153,7 +157,7 @@ CFLAGS				+=	-g -Wall				\
 					-D__arm -DLOAD_FROM_$(BOOTFROM)		\
 					-DMEMTYPE_$(MEMTYPE)			\
 					-DINITPMIC_$(INITPMIC)			\
-					-D$(OPMODE)
+					-D$(OPMODE) -D$(BOARD)
 
 
 ifeq ($(OPMODE) , aarch32)
@@ -166,5 +170,9 @@ ASFLAG				+=	-march=$(ARCH) -mcpu=$(CPU)
 
 CFLAGS				+=	-mcmodel=small				\
 					-march=$(ARCH)
+endif
+
+ifeq ($(INITPMIC), YES)
+CFLAGS				+=	-D$(BOARD)_PMIC_INIT
 endif
 

@@ -23,7 +23,7 @@
 #include "iSDHCBOOT.h"
 
 #ifdef DEBUG
-#define dprintf(x, ...)	printf(x, ...)
+#define dprintf         printf
 #else
 #define dprintf(x, ...) {}
 #endif

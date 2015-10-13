@@ -443,10 +443,10 @@ CBOOL iSPIBOOT(struct NX_SecondBootInfo * pTBI)
 		goto spifailure;
 	}
 
-	DataAddr = (U8*)pTBI->LOADADDR;
+	DataAddr = (U8*)((MPTRS)pTBI->LOADADDR);
 	DataSize = (U32)pTBI->LOADSIZE;
 
-	printf("SPI 3rd boot Load Address: 0x%08X\r\n", (U32)DataAddr );
+	printf("SPI 3rd boot Load Address: 0x%08X\r\n", (MPTRS)DataAddr );
 	printf("SPI Load Size   : 0x%08X\r\n", DataSize );
 	printf("CRC   : 0x%08X\r\n", pTBI->DBI.SPIBI.CRC32 );
 

@@ -80,7 +80,7 @@ void SetVectorLocation(U32 CPUID, CBOOL LowHigh)
     else    // cpu 0, 1, 2, 3
     {
         regvalue = ReadIO32(&pReg_Tieoff->TIEOFFREG[79]);
-        regvalue |= 1<<(12+CPUID);		// set cpu mode to AArch64
+        regvalue |= 1<<(12+CPUID);      // set cpu mode to AArch64
         WriteIO32(&pReg_Tieoff->TIEOFFREG[79], regvalue);
         WriteIO32(&pReg_Tieoff->TIEOFFREG[80+(CPUID<<1)], 0xFFFF0200>>2);
     }
@@ -149,7 +149,7 @@ CBOOL SubCPUBringUp( U32 CPUID )
     WriteIO32( &pReg_GIC400->GICC.PMR,  0xFF );     // all high priority
     WriteIO32( &pReg_GIC400->GICD.CTLR, 0x03 );     // distributor enable
 
-    printf( "Wakeup CPU " );
+    printf( "Wakeup Sub CPU " );
 
 #if (MULTICORE_BRING_UP == 1)
 
@@ -158,6 +158,7 @@ CBOOL SubCPUBringUp( U32 CPUID )
     for (CPUNumber = 1; CPUNumber < 8; )
     {
         register volatile U32 delay;
+
         pCPUStartInfo->WakeupFlag = 0;
         delay = 0x10000;
         SetVectorLocation(CPUNumber, CTRUE);    // CTRUE: High Vector(0xFFFF0000), CFALSE: Low Vector (0x0)

@@ -10,99 +10,62 @@
 //
 //
 //  Module          :
-//  File            : Startup.S
+//  File            : Startup_aarch64.S
 //  Description     :
 //  Author          : Hans
 //  History         :
-//                          2013-01-10      Hans
-//                          2014.09.03      Hans modify for NXP5430
+//                          2013-01-10      Hans Create
+//                          2014.09.03      Hans Modify for NXP5430
+//                          2015.05.04      Hans Change to support AArch64
 ////////////////////////////////////////////////////////////////////////////////
 #include "nx_peridot.h"
 #include "cfgBootDefine.h"
 
+#include "aarch64_Vectors.inc"
 
-        .align 9    // 2^9 = 512 bytes sector size
-/*
- * start and end of BSS
- */
-
-.globl __bss_start__
-.globl __bss_end__
+        .align 9, 0    // 2^9 = 512 bytes sector size
 
 /*
  * entry point of main function
  */
-.global Vectors
 .global BootMain
 .global SubCPUBoot
+.global GetCPUID
 
 //;==================================================================
 //; Vectors
 //;==================================================================
-.global Vectors
-Vectors:
-        b       Reset_Handler   //; 00 - Reset
-        b       .               //; 04 - Undefined instructions
-        b       .               //; 08 - SWI instructions
-        b       .               //; 0C - Instruction fetch aborts
-        b       .               //; 10 - Data access aborts
-        b       .               //; 14 - Reserved (was address exception)
-        b       .               //; 18 - IRQ interrupts
-        b       .               //; 1C - FIQ interrupts
-.global Sleep
-Sleep:
-        b       .//;SystemSleep     //; 20
+.global Startup
+Startup:
+        msr     DAIFSet, #(I_Bit|F_Bit|A_Bit)        //; disable interrupt & fast interrupt and Abort
 
-BuildInfo:
-        .word   0x68180306      //; 24, Chip name - 6818, Build num - v0.3.06
-Reset_Handler:
+        bl      GetCPUID
+        mov     x29, x0
 
-        msr     DAIFSet, #(I_Bit|F_Bit)        //; disable interrupt & fast interrupt
+        bl      remap_vectors
 
-        mrs     x0, MPIDR_EL1              //; Get our cpu id
-        and     x12, x0, #0x3              //; cpu id
-        lsr     x0, x0, #8
-        and     x0, x0, #0x0F              //; check processor affinity
-        orr     x12, x12, x0               //; mark cpu group 0 or 1
-
-        cmp     x12, xzr
+        ands    x0, x0, #3
         b.ne    CPUBRINGUP
 
 
+        b       Reset_Handler
+        b       .
+.global Sleep
+Sleep:
+        SMC     12345
+
+BuildInfo:
+        .word   0x68180306      //; 24, Chip name - 6818, Build num - v0.3.06
+
+Reset_Handler:
+        cmp     x29, xzr
+        b.ne    clbss_e
 //;==================================================================
 //; Clear SRAM
 //;==================================================================
         //; Clear area of global data.
-        mov     w2, wzr
-        ldr     w1, =g_suspend_ready
-        str     w2, [x1]
-        ldr     w1, =g_wakeup_ready
-        str     w2, [x1]
-        ldr     w1, =g_store_stack
-        str     w2, [x1]
-        ldr     w1, =g_store_vaddr
-        str     w2, [x1], #4
-        str     w2, [x1], #4
-        str     w2, [x1], #4
-        str     w2, [x1], #4
-        str     w2, [x1], #4
-        str     w2, [x1], #4
-        str     w2, [x1], #4
-        str     w2, [x1], #4
-
-#if 0
-        ldr     r1, =__bss_start__                  // this is auto-relocated!
-
-        mov     r3, #INTERNAL_SRAM_SIZE
-        mov     r4, #0xFF000000
-        orr     r4, r4, #0x00FF0000
-        sub     r2, r3, #(4096)                     // sram_size - stack_size
-        orr     r2, r2, r4
-#else
-
         ldr     x1, =__bss_start__                  // this is auto-relocated!
         ldr     x2, =__bss_end__                    // this is auto-relocated!
-#endif
 
         mov     x3, xzr                             // prepare zero to clear BSS
 
@@ -112,29 +75,115 @@ clbss_l:
         str     x3, [x1], #8                        // clear 64-bit BSS word
         b.lo    clbss_l
 clbss_e:
+.if 1
+//=============================================================================
+// Set L2ACTLR
+//=============================================================================
+        // L2CTLR_EL1
+        mrs     x0, S3_1_c11_c0_2                   // Read L2 Control Register
+        orr     x0, x0, #(1<<21)                    // [21]ECC, parity enable.
+        orr     x0, x0, #(1<<20)                    // [22]Data inline ECC enable.
+                                                    //     only applies if ECC is enabled
+//        and     x0, x0, #~(1<<5)                    // [5]L2 Data RAM input latency (1 cycle)
+        orr     x0, x0, #(1<<5)                     // [5]L2 Data RAM input latency (2 cycle)
+//        and     x0, x0, #~(1<<5)                    // [0]L2 Data RAM output latency (2 cycle)
+        orr     x0, x0, #(1<<5)                     // [0]L2 Data RAM output latency (3 cycle)
+        msr     S3_1_c11_c0_2, x0                   // Write L2 Control Register
 
+        // L2ECTLR_EL1 - do not touch yet
+        // L2 internal asynchronous error
+        // AXI or Skyros asynchronous error
+        // L2 dynamic retention control
+//        mrs     x0, S3_1_C11_C0_3                   // Read L2 Extented Control Register
+//        and     x0, x0, #~(1<<30)                   // clear internal asynchronous error pending irq
+//        and     x0, x0, #~(1<<29)                   // clear AXI asynchronous error irq
+//        bic     x0, x0, #(7<<0)                     // L2 dynamic retention disabled.
+//        msr     S3_1_C11_C0_3, x0                   // Write L2 Extented Control Register
+
+        // L2ACTLR_EL1
+        mrs     x0, s3_1_c15_c0_0
+        and     x0, x0, #~(1<<14)                   // Disables UniqueClean evictions with data. This is the reset value for ACE.
+        and     x0, x0, #~(1<<3)                    // Enable clean/evict to be pushed out to external. This is the reset value for ACE.
+        msr     s3_1_c15_c0_0, x0
+
+        // CPUACTLR_EL1
+//        mrs     x0, S3_1_c15_c2_0
+//        no touch yet
+//        msr     S3_1_c15_c2_0, x0
+        mrs     x0, ACTLR_EL3                       // Read ACTLR_ELx into Xt
+        orr     x0, x0, #(1<<6)                     // L2ACTLR accessible from lower ELs
+        orr     x0, x0, #(1<<5)                     // L2ECTLR accessible from lower ELs
+        orr     x0, x0, #(1<<4)                     // L2CTLR accessible from lower ELs
+        orr     x0, x0, #(1<<1)                     // CPUECTLR accessible from lower ELs
+        orr     x0, x0, #(1<<0)                     // CPUACTLR accessible from lower ELs
+        msr     ACTLR_EL3, x0                       // Write Xt to ACTLR_ELx
+//        dsb     sy
+.endif
 //;==================================================================
 //; Setup stacks
 //;==================================================================
 CPUBRINGUP:
 
+        mrs     x0, SCR_EL3
+        orr     x0, x0, #(3<<4)                     // RES1
+        bic     x0, x0, #(1<<0)                     // 1: secure mode
+        orr     x0, x0, #(1<<2)                     // 1: route fiq to EL3
+        bic     x0, x0, #(1<<7)                     // 0: SMC is enabled at EL1, EL2, or EL3    1: SMC is undefined at all exception level
+        bic     x0, x0, #(1<<8)                     // disable HVC. to be NOP
+//;        orr     x0, x0, #(1<<12)                    // trap WFI
+        orr     x0, x0, #(1<<10)                    // RW: 0: aarch32, 1:aarch64
+        msr     SCR_EL3, x0
+
+        msr     CPTR_EL3, xzr                       //; not traped FP, SIMD
+
         mrs     x0, S3_1_c15_c2_1
         orr     x0, x0, #(1<<6)                     // [6] SMPEN
         msr     S3_1_c15_c2_1, x0
 
-        mrs     x0, SCR_EL3
-        orr     x0, x0, #(3<<1)                     // route irq, fiq to EL3
-        msr     SCR_EL3, x0
+//        ldr     x0, =200000000
+//        msr     CNTFRQ_EL0, x0
+
+        mrs     x0, CPACR_EL1                       //; printf use fpu, neon register. so for test, exception trap must be disabled.
+        orr     x0, x0, #(3<<20)                    //; access fpu is not traped EL0, EL1
+        msr     CPACR_EL1, x0
+
+        mrs     x0, HCR_EL2
+        orr     x0, x0, #(1<<31)                    //; rw 0:lower levels are all aarch32, 1: EL1 is aarch64
+        bic     x0, x0, #(1<<27)                    //; TGE    - el1 exception routed to el2
+//;        orr     x0, x0, #(1<<13)                 //; wfi traped
+        orr     x0, x0, #(1<<4)                     //; IMO
+        msr     HCR_EL2, x0
+
+//;        mrs     x0, CPTR_EL2
+        mov     x0, #0x33FF                         //; RES1
+//;        bic     x0, x0, #(1<<31)                    //; TCPAC
+//;        bic     x0, x0, #(1<<20)                    //; TTA
+//;        bic     x0, x0, #(1<<10)                    //; TFP
+        msr     CPTR_EL2, x0
+
+        cmp     x29, xzr
+        b.ne    0f
+.if 1
 
         mrs     x0, SCTLR_EL3
-        orr        x0, x0, #(1<<12)                 // enable icache
+        bic     x0, x0, #(1<<12)                    //; icache disable
         msr     SCTLR_EL3, x0
+        ic      ialluis                             //; invalidate icache all
+        isb     sy
+        mrs     x0, SCTLR_EL3
+        orr     x0, x0, #(1<<12)
+        msr     SCTLR_EL3, x0                       //; icache enable
+.endif
 
+        mov     x0, #0x0830                         //; RES1
+        movk    x0, #0x30C5, lsl #16                //; RES1
+        msr     sctlr_el2, x0                       //; MMU off, I and C bit off, Align bit off, little endian, execute never
+0:
         mov     w0, #0xFF000000
         orr     w0, w0, #0x00FF0000
         add     x0, x0, #INTERNAL_SRAM_SIZE
 
-        mov     w1, #0x40                           // AArch64 stack point must be aligned by 16bytes
+        mov     w1, #0x200                          // AArch64 stack point must be aligned by 16bytes
         sub     w2, w12, #1
         and     w2, w2, #0x7                        // cpu 0: -0x1C0, cpu 1: -0, cpu 2: -0x40,  3: -0x80, 4: -0xC0, 5: -0x100, 6: -0x140, 7: -0x180
         mul     w1, w1, w2
@@ -142,15 +191,17 @@ CPUBRINGUP:
 
         mov     sp, x0
 
-        mov     x0, x12
+        mov     x0, x29
 
         cmp     x0, xzr
-        b.ne    subcpubootgo
+        b.ne    1f
         bl      BootMain                            //; save this in register for possible long jump
-subcpubootgo:
+        b       .
+1:
         bl      SubCPUBoot
         b       .
 
+        .ltorg
 //;==================================================================
 //; PLL Change
 //;==================================================================
@@ -171,378 +222,72 @@ notadapt:
 postloop:
         b.ne    pllchangedelayloop
         ret
-        nop
 
-//;==================================================================
-//; Self-Refresh Service
-//;==================================================================
-.global enterSelfRefresh                            //; this code is call linux kernel, so here is virtual memory space.
-.global sleepMain
-.global vddPowerOff
-//.global subCPUsleep
-//.global jumpToVirtualArea
+        .ltorg
 
-subCPUsleep:
-        mov     w0, #1
-        ldr     w1, =g_suspend_ready
-        ldr     w2, [x1]
-//;        orr     w2, w2, w0, lsl w3
-        str     w2, [x1]
-
-        wfi
-        b       .
-        ldr     w0, =0xfffffb60
-        ldursw  x0, [x0]
-        ldr     w0, =0xfffffb60
-        ldrsw   x0, [x0]
-        ldr     w0, =0xfffffb60
-        ldr     x0, [x0]
-#if 0
-        ldr     w0, =g_wakeup_ready
-recheck_cpu0_ready:
-        ldr     w1, [x0]
-        cmp     w1, #0
-        b.eq    recheck_cpu0_ready
-
-        b       jumpToVirtualArea
-
+//.global sync_asm_handler_EL3
         .align 4
-SystemSleep:                            //; r0:alive r1:drex
+.global synchrorous_vector_jump
+synchrorous_vector_jump:
+        adr     x0, sync_vector_value
+        ldr     w0, [x0]
+        br      x0
+sync_vector_value:
+        .long    sync_asm_handler_EL3
 
-        //; Disable IRQ & FIQ.
-        cpsid   if
+.global    remap_vectors
+// void remap_vectors(U32 cpuid, U32 *synchrorous_vector_jump, void temp, U32 *__bss_end__);
+remap_vectors:
+        ldr     x3, =__bss_end__
+        add     x3, x3, #0x7FF
+        bic     x3, x3, #0x7FF
 
-        //; Store reg values
-        stmfd   sp!, {w0-w4, lr}
+        cmp     x0, xzr
+        b.ne    2f
 
-        //; dcache off
-        bl      v7_flush_cache_all
-        mrs     x1, SCTLR_EL3           //; Read control register
-        bic     x1, x1, #0x4            //; Disable DC.
-        msr     SCTLR_EL3, x1
+        ldr     x1, =synchrorous_vector_jump
+        ldr     x2, [x1], #8
+//;        str     x2, [x3, #0x000]                    //; current Exception level with SP_EL0
+        str     x2, [x3, #0x200]                    //; current Exception level with SP_ELx, x>0
+        str     x2, [x3, #0x400]                    //; Lower Exception level with aarch64
+        str     x2, [x3, #0x600]                    //; Lower Exception level with aarch32
+        ldr     x2, [x1], #8
+//;        str     x2, [x3, #0x008]                    //; current Exception level with SP_EL0
+        str     x2, [x3, #0x208]                    //; current Exception level with SP_ELx, x>0
+        str     x2, [x3, #0x408]                    //; Lower Exception level with aarch64
+        str     x2, [x3, #0x608]                    //; Lower Exception level with aarch32
 
-        mov     x4, pc
-        bic     x4, x4, #0xFF
-        bic     x4, x4, #0xFF00
+2:
+        msr     VBAR_EL3, x3                        //; reset exception vector
 
+        ret
 
-    //;-----------------------
-    //;   Disable MMU
-    //;-----------------------
-
-jumpToPhysicalArea:
-DisableMMU:
-//        mrc     p15, 0, r1, c1, c0, 0   //; Read control register
-        bic     x1, x1, #0x1            //; Disable MMU.
-//        bic     w1, w1, #0x1000         //; Disable IC.
-//        bic     w1, w1, #0x4            //; Dsiable DC.
-
-        ldr     x0, =PhysicalStart
-        cmp     w0, #0                  //; make sure no stall on "mov pc,r0" below
-
-        //; Disable the MMU.
-        //;
-        msr     SCTLR_EL3, x1
-
-        //; Jump to the physical address of the 'PhysicalStart' label.
-        //;
-        mov     pc, x0                  //;  & jump to new physical address
-        nop
-        nop
-        nop
-
-        //; MMU & caches now disabled.
-        //;
-
-
-PhysicalStart:
-
-        //; ALive interrupt foward to only cpu0.
-        ldr     w0, =0xC0009824
-        ldr     w1, [x0]
-        bic     w2, w1, #0xFF
-        orr     w1, w2, #0x01
-        str     w1, [x0]
-
-        //; get cpu nember
-        mrs     x3, MPIDR_EL1           //; Get our cpu id
-        tst     w3, #0x4400             //; check processor affinity
-        orr.ne  w3, w3, #4              //; mark cpu0 or cpu1
-        ands    w3, w3, #0xF            //; Save CPU id
-
-        ldr     w0, =g_store_vaddr
-        lsl     w2, w3, #2
-        str     w4, [x0, w2]
-        b.ne     subCPUsleep             //; if cpu0 then bypass.
-
-#if 0
-#if (MULTICORE_SLEEP_CONTROL == 1)
-#if 0
-        //; wait suspend status
-        ldr     w0, =g_suspend_ready
-        ldr     w1, =0xFE
-recheck_suspend_ready:
-        ldr     w2, [x0]
-        cmp     w1, w2
-        b.ne    recheck_suspend_ready
-#else
-
-        //; wait suspend status
-        ldr     r1, =0xFE
-recheck_suspend_ready:
-        ldr     r0, =0xC0011168         //; TIEOFF90
-        ldr     r2, [r0]
-        and     r2, r2, #0xF
-
-        ldr     r0, =0xC00111AC         //; TIEOFF107
-        ldr     r3, [r0]
-        and     r3, r3, #0xF
-
-        orr     r2, r2, r3, lsl #4
-
-        cmp     r1, r2
-        bne     recheck_suspend_ready
-#endif
-#endif  //; #if (MULTICORE_SLEEP_CONTROL == 1)
-#endif
+        .ltorg
+//==================================================================
+// Exception Handler entry
+//==================================================================
+    .align 3
+    .global sync_asm_handler_EL3
+sync_asm_handler_EL3:
+        PUSH_HANDLER_FRAME
+//;        b        .
+        bl      sync_c_handler_EL3
+        POP_HANDLER_FRAME
+        msr     elr_el3, x30                        //; lr
+        eret
 
 
-        //; Store stack pointer
-        ldr     w0, =g_store_stack
-        str     sp, [x0]
+.global ExceptionTest
+.global Startup_EL1
+Startup_EL1:
+        mov     x0, 0xffffff00
+        mov     sp, x0
 
-        //; Set stack pointer
-        mov     sp, #0xFF000000
-        orr     sp, sp, #0x00FF0000
-        add     sp, sp, #INTERNAL_SRAM_SIZE
+//        mrs     x0, CPACR_EL1                       //; printf use fpu, neon register. so for test, exception trap must be disabled.
+//        orr     x0, x0, #(3<<20)                    //; access fpu is not traped EL0, EL1
+//        msr     CPACR_EL1, x0
 
-        //; Store link address
-        push    {lr}
-
-
-        //; Goto sleepMain function.
-        bl      sleepMain
-
-        //; Awake other cpus.
-        ldr     w0, =0xC0009F00
-        ldr     w1, =(0xFE << 16)
-        str     w1, [x0]
-
-        //; Set cpu0 status already.
-        ldr     w0, =g_wakeup_ready
-        mov     w1, #1
-        str     w1, [x0]
-
-        //; Restore link address
-        pop     {lr}
-
-        //; Restore stack pointer
-        ldr     w0, =g_store_stack
-        ldr     sp, [x0]
-
-    //;-----------------------
-    //;   Eisable MMU
-    //;-----------------------
-
-        .align 4
-jumpToVirtualArea:
-EnableMMU:
-        ldr     w0, =g_store_vaddr
-
-        //; get cpu nember
-        mrs     x3, MPIDR_EL1           //; Get our cpu id
-        tst     w3, #0x4400             //; check processor affinity
-        orr.ne   w3, w3, #4             //; mark cpu0 or cpu1
-        and     w3, w3, #0xF            //; Save CPU id
-
-        lsl     w2, w3, #2
-        ldr     w4, [w0, w2]
-
-        mrs     x1, SCTLR_EL3           //; Read control register
-        orr     w1, w1, #0x1            //; Enable MMU.
-        orr     w1, w1, #0x1000         //; Enable IC.
-        orr     w1, w1, #0x4            //; Enable DC.
-
-        ldr     w0, =VirtualStart
-        bic     w0, #0xFF000000
-        bic     w0, #0x00FF0000
-        orr     w0, w0, w4
-        cmp     w0, #0                  //; make sure no stall on "mov pc,r0" below
-
-        //; Enable the MMU.
-        //;
-        msr     SCTLR_EL3, x1
-
-        //; Jump to the virtual address of the 'VirtualStart' label.
-        //;
-        mov     pc, x0                  //;  & jump to new virtual address
-        nop
-        nop
-        nop
-
-        //; MMU & caches now enabled.
-        //;
-
-
-VirtualStart:
-        //; Restore reg values
-        ldmfd   sp!, {w0-w4, lr}
-
-        mov     pc, lr
-        b       .
-
-#endif
-
-#if 0
-.global BurstZero
-BurstZero:
-        push    {x2-x9, lr}
-        mvn     x2, x1
-        mvn     x3, x1
-        mvn     x4, x1
-        mvn     x5, x1
-        mvn     x6, x1
-        mvn     x7, x1
-        mvn     x8, x1
-        mvn     x9, x1
-        stmia   x0!, {x2-x9}
-        pop     {x2-x9, pc}
-
-.global BurstWrite
-BurstWrite:
-        push    {x2-x9, lr}
-        mvn     x2, x1
-        mvn     x3, x1
-        mvn     x4, x1
-        mvn     x5, x1
-        mov     x6, x1
-        mvn     x7, x1
-        mvn     x8, x1
-        mvn     x9, x1
-        stmia   x0!, {x2-x9}
-        pop     {x2-x9, pc}
-
-.global BurstRead
-BurstRead:
-        push    {x2-x9, lr}
-        ldmia   x0!, {x2-x9}
-        stmia   x1!, {x2-x9}
-        pop     {x2-x9, pc}
-#endif
-
-#if 0
-/*
- *  v7_flush_dcache_all()
- *
- *  Flush the whole D-cache.
- *
- *  Corrupted registers: r0-r7, r9-r11 (r6 only in Thumb mode)
- *
- *  - mm    - mm_struct describing address space
- */
-.global v7_flush_dcache_all
-v7_flush_dcache_all:
-        dmb                                     //; ensure ordering with previous memory accesses
-        mrc     p15, 1, w0, c0, c0, 1           //; read clidr
-        ands    w3, w0, #0x7000000              //; extract loc from clidr
-        mov     w3, w3, lsr #23                 //; left align loc bit field
-        b.eq     finished                       //; if loc is 0, then no need to clean
-        mov     w10, #0                         //; start clean at cache level 0
-loop1:
-        add     w2, w10, w10, lsr #1            //; work out 3x current cache level
-        mov     w1, w0, lsr w2                  //; extract cache type bits from clidr
-        and     w1, w1, #7                      //; mask of the bits for current cache only
-        cmp     w1, #2                          //; see what cache we have at this level
-        blt     skip                            //; skip if no cache, or just i-cache
-#ifdef CONFIG_PREEMPT
-        save_and_disable_irqs_notrace r9        //; make cssr&csidr read atomic
-#endif
-        mcr     p15, 2, w10, c0, c0, 0          //; select current cache level in cssr
-        isb                                     //; isb to sych the new cssr&csidr
-        mrc     p15, 1, w1, c0, c0, 0           //; read the new csidr
-#ifdef CONFIG_PREEMPT
-        restore_irqs_notrace w9
-#endif
-        and     w2, w1, #7                      //; extract the length of the cache lines
-        add     w2, w2, #4                      //; add 4 (line length offset)
-        ldr     w4, =0x3ff
-        ands    w4, w4, w1, lsr #3              //; find maximum number on the way size
-        clz     w5, w4                          //; find bit position of way size increment
-        ldr     w7, =0x7fff
-        ands    w7, w7, w1, lsr #13             //; extract max number of the index size
-loop2:
-        mov     w9, w4                          //; create working copy of max way size
-loop3:
-        orr     w11, w10, w9, lsl w5            //; factor way and cache number into r11
-        orr     w11, w11, w7, lsl w2            //; factor index number into r11
-        mcr     p15, 0, w11, c7, c14, 2         //; clean & invalidate by set/way
-        subs    w9, w9, #1                      //; decrement the way
-        b.ge     loop3
-        subs    w7, w7, #1                      //; decrement the index
-        b.ge     loop2
-skip:
-        add     w10, w10, #2                    //; increment cache number
-        cmp     w3, w10
-        b.gt     loop1
-finished:
-        mov     w10, #0                         //; swith back to cache level 0
-        mcr     p15, 2, w10, c0, c0, 0          //; select current cache level in cssr
-        dsb
-        isb
-        mov     pc, lr
-
-
-/*
- *  v7_flush_cache_all()
- *
- *  Flush the entire cache system.
- *  The data cache flush is now achieved using atomic clean / invalidates
- *  working outwards from L1 cache. This is done using Set/Way based cache
- *  maintenance instructions.
- *  The instruction cache can still be invalidated back to the point of
- *  unification in a single instruction.
- *
- */
-.global v7_flush_cache_all
-v7_flush_cache_all:
-        stmfd   sp!, {w4-w5, w7, w9-w11, lr}
-        bl      v7_flush_dcache_all
-        mov     w0, #0
-        mcr     p15, 0, w0, c7, c1, 0           //; invalidate I-cache inner shareable
-        mcr     p15, 0, w0, c7, c5, 0           //; I+BTB cache invalidate
-        ldmfd   sp!, {w4-w5, w7, w9-w11, lr}
-        mov     pc, lr
-
-#endif
-
-//;==================================================================
-//; Global data
-//;==================================================================
-        .align 2
-        .long   0x12345678
-
-.global g_suspend_ready
-g_suspend_ready:
-        .long   0x00000000
-
-.global g_wakeup_ready
-g_wakeup_ready:
-        .long   0x00000000
-
-.global g_store_stack
-g_store_stack:
-        .long   0x00000000
-
-.global g_store_vaddr
-g_store_vaddr:
-        .long   0x00000000      //; CPU 0
-        .long   0x00000000
-        .long   0x00000000
-        .long   0x00000000
-        .long   0x00000000
-        .long   0x00000000
-        .long   0x00000000
-        .long   0x00000000
+        b       ExceptionTest
 
 //;==================================================================
 //; End of startup.s

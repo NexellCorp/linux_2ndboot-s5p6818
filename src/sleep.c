@@ -78,20 +78,11 @@ void dowakeup(void)
 
 void vddPowerOff( void )
 {
-    U32 temp = 0;
-
     WriteIO32( &pReg_ClkPwr->CPUWARMRESETREQ,       0x0 );              //; clear for reset issue.
 
-    while(1)
-    {
-        temp  = ReadIO32(&pReg_Tieoff->TIEOFFREG[90]) & 0xF;
-        temp |= ( ReadIO32( &pReg_Tieoff->TIEOFFREG[107]) & 0xF) << 4;
-
-        if (temp == 0xFE)
-            break;
-    }
-
-    ClearIO32( &pReg_ClkPwr->PWRCONT,               (0x3FFFF<<   8) );  //; Clear USE_WFI & USE_WFE bits for STOP mode.
+//    ClearIO32( &pReg_ClkPwr->PWRCONT,               (0x3FFFF<<   8) );  //; Clear USE_WFI & USE_WFE bits for STOP mode.
+    SetIO32  ( &pReg_ClkPwr->PWRCONT,   0xF<<12 | 0xF<<20);     // stop mode needs all cpu wfi
+    ClearIO32( &pReg_ClkPwr->PWRCONT,   0xF<<8 | 0xF<<16);      // stop mode does not need all cpu wfe
 
 #if (MULTICORE_SLEEP_CONTROL == 1)
     WriteIO32( &pReg_Alive->ALIVEPWRGATEREG,        0x00000001 );       //; alive power gate open
@@ -167,6 +158,14 @@ void sleepMain( void )
 {
     U32 temp;
 
+#if 1
+    do
+    {
+        temp  = ReadIO32(&pReg_Tieoff->TIEOFFREG[90]) & 0xF;
+        temp |= ( ReadIO32( &pReg_Tieoff->TIEOFFREG[107]) & 0xF) << 4;  // wait for sub CPU WFI signal
+    } while(temp != 0xFE);	// except core 0
+#endif
+
 #if 0
     WriteIO32( &clkpwr->PLLSETREG[1],   0x100CC801 );       //; set PLL1 - 800Mhz
 //    WriteIO32( &clkpwr->PLLSETREG[1],   0x100CC802 );       //; set PLL1 - 400Mhz
@@ -191,6 +190,9 @@ void sleepMain( void )
         temp = ReadIO32( &pReg_Tieoff->TIEOFFREG[76] ) & ((1<<24) | (1<<21) | (1<<18));
     } while( temp );
 
+    printf("enter self refresh\r\n");
+    while(!DebugIsTXEmpty());
+    while(DebugIsBusy());
     enterSelfRefresh();
 
     vddPowerOff();

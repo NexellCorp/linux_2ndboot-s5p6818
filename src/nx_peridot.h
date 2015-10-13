@@ -13,7 +13,7 @@
 //; Description : core define
 //; Author      : Hans
 //; History     :
-//;		2014-03-31	Hans, for AArch64
+//;     2014-03-31	Hans, for AArch64
 //;     2014-08-20  Hans, for cortex A53
 //;-------------------------------------------------------------------------------
 
@@ -41,6 +41,15 @@
 #endif
 
 #ifdef aarch64
+#define AArch64_EL3_SP3     0x0D    // EL3h
+#define AArch64_EL3_SP0     0x0C    // EL3t
+#define AArch64_EL2_SP2     0x09    // EL2h
+#define AArch64_EL2_SP0     0x08    // EL2t
+#define AArch64_EL1_SP1     0x05    // EL1h
+#define AArch64_EL1_SP0     0x04    // EL1t
+#define AArch64_EL0_SP0     0x00
+
+#define A_Bit               (1<<2)              //; when A bit is set, Abort is disabled
 #define I_Bit               (1<<1)              //; when I bit is set, IRQ is disabled
 #define F_Bit               (1<<0)              //; when F bit is set, FIQ is disabled
 #endif
@@ -86,6 +95,7 @@
 #define POLY 0x04C11DB7L    //reverse
 
 #define SUSPEND_SIGNATURE       (0x50575200)    /* PWR (ASCII) */
+#define USBREBOOT_SIGNATURE     (0x85836666)
 
 
 #define SDFSBOOT                2

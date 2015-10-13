@@ -196,7 +196,13 @@ struct NX_SecondBootInfo
     U16 LvlTr_Mode;                 // 0x0D0 ~ 0x0D1
     U16 FlyBy_Mode;                 // 0x0D2 ~ 0x0D3
 
+#if (BOOTCOUNT == 1)
+    U32 Stub[(0x1E4-0x0D4)/4];      // 0x0D4 ~ 0x1E4
+    U32 ResetCount;                 // 0x1E4
+    U32 BootCount;                  // 0x1E8
+#else
     U32 Stub[(0x1EC-0x0D4)/4];      // 0x0D4 ~ 0x1EC
+#endif
 #endif
 
     U32 MemTestAddr;                // 0x1EC

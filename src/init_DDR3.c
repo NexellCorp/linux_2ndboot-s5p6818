@@ -1672,6 +1672,7 @@ CBOOL init_DDR3(U32 isResume)
     SetIO32  ( &pReg_RstCon->REGRST[0],     (0x7    <<  26) );
 //    DMC_Delay(0x10000);                             // wait 300ms
 
+#if 0
     ClearIO32( &pReg_Tieoff->TIEOFFREG[3],  (0x1    <<  31) );
     DMC_Delay(0x1000);                              // wait 300ms
     SetIO32  ( &pReg_Tieoff->TIEOFFREG[3],  (0x1    <<  31) );
@@ -1679,6 +1680,7 @@ CBOOL init_DDR3(U32 isResume)
     ClearIO32( &pReg_Tieoff->TIEOFFREG[3],  (0x1    <<  31) );
     DMC_Delay(0x1000);                              // wait 300ms
     SetIO32  ( &pReg_Tieoff->TIEOFFREG[3],  (0x1    <<  31) );
+#endif
     DMC_Delay(0x10000);                             // wait 300ms
 #endif
 

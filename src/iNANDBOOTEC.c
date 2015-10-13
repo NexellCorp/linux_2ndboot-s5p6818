@@ -613,7 +613,7 @@ RescueBoot:
 						}
 						else
 						{
-							pBuf = (U32*)(dwBinAddr+pBootStatus->dwSectorSize*iSectorIndex);
+							pBuf = (U32*)((MPTRS)(dwBinAddr+pBootStatus->dwSectorSize*iSectorIndex));
 							UsingFlag = CTRUE;
 						}
 						if(UsingFlag && ImageIndex != 0)
@@ -636,7 +636,7 @@ RescueBoot:
 					Result = CFALSE;
 				else
 				{
-					U32 j, fcs = 0, *pdata = (U32*)dwBinAddr;
+					U32 j, fcs = 0, *pdata = (U32*)((MPTRS)dwBinAddr);
 					for(j=0; j<(plTBI->LOADSIZE)>>2; j++)
 					{
 						U32 crcdata;

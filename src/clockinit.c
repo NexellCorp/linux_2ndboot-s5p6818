@@ -364,7 +364,7 @@ void PLLDynamicChange(U32 Freq)
 											(0UL<<28)|	// clock bypass on, xtal clock use
 											(PLL_PMS_800MHZ_S<<PLL_S) | (PLL_PMS_800MHZ_M<<PLL_M) | (PLL_PMS_800MHZ_P<<PLL_P));
 	pReg_ClkPwr->CLKMODEREG0 = (1<<CPU_CLKSRC);	// update pll
-	while(clkpwr->CLKMODEREG0 & (1<<31));	// wait for change update pll
+	while(pReg_ClkPwr->CLKMODEREG0 & (1<<31));	// wait for change update pll
 	DMC_Delay(100);	// 1us
 
 

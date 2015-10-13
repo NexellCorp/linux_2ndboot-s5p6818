@@ -336,7 +336,7 @@ recheck_suspend_ready:
         ldr     sp, [r0]
 
     //;-----------------------
-    //;   Eisable MMU
+    //;   Enable MMU
     //;-----------------------
 
         .align 8

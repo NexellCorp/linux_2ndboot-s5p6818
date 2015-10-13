@@ -1,6 +1,7 @@
 OUTPUT_FORMAT("elf64-littleaarch64", "elf64-littleaarch64", "elf64-littleaarch64")
 OUTPUT_ARCH(aarch64)
-ENTRY(Vectors)
+
+ENTRY(Startup)
 
 SECTIONS
 {
@@ -23,6 +24,7 @@ SECTIONS
 
 	_end = .;
 
+	. = ALIGN(8);
 	__bss_start__ = .;
 	.bss_start (OVERLAY) : {
 		KEEP(*(.__bss_start));
