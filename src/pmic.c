@@ -130,11 +130,11 @@ struct vdd_core_tb_info {
 };
 
 static const struct vdd_core_tb_info vdd_core_tables[] = {
-    [0] = { .ids = 6,  .ro = 90,  .mV = 1225 },
+    [0] = { .ids = 6,  .ro = 90,  .mV = 1200 },
     [1] = { .ids = 15, .ro = 130, .mV = 1175 },
-    [2] = { .ids = 38, .ro = 170, .mV = 1125 },
-    [3] = { .ids = 78, .ro = 200, .mV = 1075 },
-    [4] = { .ids = 78, .ro = 200, .mV = 1025 }
+    [2] = { .ids = 38, .ro = 170, .mV = 1150 },
+    [3] = { .ids = 78, .ro = 200, .mV = 1100 },
+    [4] = { .ids = 78, .ro = 200, .mV = 1050 }
 };
 
 #define VDD_CORE_ARRAY_SIZE     (int)(sizeof(vdd_core_tables)/sizeof(vdd_core_tables[0]))
@@ -250,11 +250,7 @@ inline void PMIC_Drone(void)
     // ARM voltage change
     //
 #if (ARM_VOLTAGE_CONTROL_SKIP == 0)
-#if (AUTO_VOLTAGE_CONTROL == 1)
-    pData[0] = axp228_get_dcdc_step((vdd_tb->mV * 1000), AXP228_DEF_DDC234_VOL_STEP, AXP228_DEF_DDC234_VOL_MIN, AXP228_DEF_DDC24_VOL_MAX);
-#else
     pData[0] = axp228_get_dcdc_step(AXP228_DEF_DDC2_VOL, AXP228_DEF_DDC234_VOL_STEP, AXP228_DEF_DDC234_VOL_MIN, AXP228_DEF_DDC24_VOL_MAX);
-#endif
     I2C_Write(I2C_ADDR_AXP228, AXP228_REG_DC2VOL, pData, 1);
 #endif
 
@@ -294,6 +290,23 @@ inline void PMIC_AVN(void)
     pData[0] |= 1<<5;
     I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
 
+#if (AUTO_VOLTAGE_CONTROL == 1) && !defined( BF700_PMIC_INIT )
+    if (ecid_1)
+    {
+        U8 Data;
+
+        pData[0] = MP8845_mV_list[asv_idx] | 1<<7;
+        Data = pData[0];
+        I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
+
+        I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
+
+        if(Data != pData[0])
+        {
+            printf("verify arm voltage code write:%d, read:%d\r\n", Data, pData[0]);
+        }
+    }
+#else
 #if defined( BF700_PMIC_INIT )
     pData[0] = 90 | 1<<7;     // 1.2V
 #endif
@@ -301,6 +314,7 @@ inline void PMIC_AVN(void)
     pData[0] = 75 | 1<<7;     // 1.1V
 #endif
     I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
+#endif
 
     //
     // I2C init for ARM power.
@@ -320,28 +334,15 @@ inline void PMIC_AVN(void)
     pData[0] |= 1<<5;
     I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
 
-#if (AUTO_VOLTAGE_CONTROL == 1)
-    if (ecid_1)
-    {
-        U8 Data;
-
-        pData[0] = MP8845_mV_list[asv_idx] | 1<<7;
-        Data = pData[0];
-        I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
-
-        I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
-
-        if(Data != pData[0])
-        {
-            printf("verify arm voltage code write:%d, read:%d\r\n", Data, pData[0]);
-        }
-    }
-#else
-
-//    pData[0] = 75 | 1<<7;   // 1.1V
-    pData[0] = 80 | 1<<7;   // 1.135V
-    I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
+#if defined( BF700_PMIC_INIT )
+    pData[0] = 90 | 1<<7;     // 1.2V
 #endif
+#if defined( AVN_PMIC_INIT )
+//    pData[0] = 90 | 1<<7;   // 90: 1.2V
+//    pData[0] = 80 | 1<<7;   // 80: 1.135V
+    pData[0] = 75 | 1<<7;   // 75: 1.1V
+#endif
+    I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
 #endif
 }
 #endif     // BF700
@@ -372,9 +373,28 @@ inline void PMIC_SVT(void)
     pData[0] |= 1<<5;
     I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
 
+#if (AUTO_VOLTAGE_CONTROL == 1)
+    if (ecid_1)
+    {
+        U8 Data;
+
+        pData[0] = MP8845_mV_list[asv_idx] | 1<<7;
+        Data = pData[0];
+        I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
+
+        I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
+
+        if(Data != pData[0])
+        {
+            printf("verify arm voltage code write:%d, read:%d\r\n", Data, pData[0]);
+        }
+    }
+#else
 //    pData[0] = 90 | 1<<7;   // 90: 1.2V
-    pData[0] = 80 | 1<<7;   // 80: 1.135V
+//    pData[0] = 80 | 1<<7;   // 80: 1.135V
+    pData[0] = 75 | 1<<7;   // 75: 1.1V
     I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
+#endif
 #else
     pData[0] = nxe2000_get_dcdc_step(NXE2000_DEF_DDC2_VOL);
     I2C_Write(I2C_ADDR_NXE2000, NXE2000_REG_DC2VOL, pData, 1);  // Core - second power
@@ -384,11 +404,7 @@ inline void PMIC_SVT(void)
     // ARM voltage change
     //
 #if (ARM_VOLTAGE_CONTROL_SKIP == 0)
-#if (AUTO_VOLTAGE_CONTROL == 1)
     pData[0] = nxe2000_get_dcdc_step(NXE2000_DEF_DDC1_VOL);
-#else
-    pData[0] = nxe2000_get_dcdc_step(vdd_tb->mV * 1000);
-#endif
     I2C_Write(I2C_ADDR_NXE2000, NXE2000_REG_DC1VOL, pData, 1);
 #endif
 
@@ -425,9 +441,28 @@ inline void PMIC_ASB(void)
     pData[0] |= 1<<5;
     I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
 
+#if (AUTO_VOLTAGE_CONTROL == 1)
+    if (ecid_1)
+    {
+        U8 Data;
+
+        pData[0] = MP8845_mV_list[asv_idx] | 1<<7;
+        Data = pData[0];
+        I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
+
+        I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
+
+        if(Data != pData[0])
+        {
+            printf("verify arm voltage code write:%d, read:%d\r\n", Data, pData[0]);
+        }
+    }
+#else
 //    pData[0] = 90 | 1<<7;   // 90: 1.2V
-    pData[0] = 80 | 1<<7;   // 80: 1.135V
+//    pData[0] = 80 | 1<<7;   // 80: 1.135V
+    pData[0] = 75 | 1<<7;   // 75: 1.1V
     I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
+#endif
 
 
     //
@@ -445,24 +480,12 @@ inline void PMIC_ASB(void)
     //
 #if (ARM_VOLTAGE_CONTROL_SKIP == 0)
 #if 1
-#if (AUTO_VOLTAGE_CONTROL == 1)
-    if (ecid_1)
-    {
-        I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
-        pData[0] |= 1<<5;
-        I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
-
-        pData[0] = MP8845_mV_list[asv_idx] | 1<<7;
-        I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
-    }
-#endif
+//    pData[0] = 90 | 1<<7;   // 90: 1.2V
+//    pData[0] = 80 | 1<<7;   // 80: 1.135V
+    pData[0] = 75 | 1<<7;   // 75: 1.1V
+    I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
 #else
-
-#if (AUTO_VOLTAGE_CONTROL == 1)
     pData[0] = nxe2000_get_dcdc_step(NXE2000_DEF_DDC1_VOL);
-#else
-    pData[0] = nxe2000_get_dcdc_step(vdd_tb->mV * 1000);
-#endif
     I2C_Write(I2C_ADDR_NXE2000, NXE2000_REG_DC1VOL, pData, 1);
 #endif
 #endif
