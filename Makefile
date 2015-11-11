@@ -99,6 +99,9 @@ ifeq ($(OS),Windows_NT)
 	@if not exist $(DIR_TARGETOUTPUT)		\
 		@$(MKDIR) $(DIR_TARGETOUTPUT)
 else
+	@if [ ! -L prototype ] ; then			\
+		ln -s ../../../prototype/s5p6818/ prototype ; \
+	fi
 	@if	[ ! -e $(DIR_OBJOUTPUT) ]; then 	\
 		$(MKDIR) $(DIR_OBJOUTPUT);		\
 	fi;
@@ -132,6 +135,9 @@ ifeq ($(OS),Windows_NT)
 	@if exist $(DIR_TARGETOUTPUT)			\
 		@$(RMDIR) $(DIR_TARGETOUTPUT)
 else
+	@if [ -L prototype ] ; then			\
+		$(RM) prototype ;			\
+	fi
 	@if	[ -e $(DIR_OBJOUTPUT) ]; then 		\
 		$(RMDIR) $(DIR_OBJOUTPUT);		\
 	fi;
