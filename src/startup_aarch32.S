@@ -57,9 +57,15 @@ BuildInfo:
 Reset_Handler:
 //;        mcr     p15, 0 r0, c8, c9, 0                //; set debug break;
         mrc     p15, 0, r12, c0, c0, 5              //; Get our cpu id
+#if 0
         tst     r12, #0x4400                        //; check processor affinity
         orrne   r12, r12, #4                        //; mark cpu0 or cpu1
         ands    r12, r12, #0xF                      //; Save CPU id
+#else
+        and     r11, r12, #(0xFF << 8)              //; mask cluster id
+        and     r12, r12, #0xFF                     //; mask cpu id
+        orr     r12, r11, lsr #6                    //; save cpu id
+#endif
 
         msr     CPSR_c, #(Mode_SVC|I_Bit|F_Bit)
 
@@ -131,6 +137,7 @@ clbss_l:
 //;==================================================================
 CPUBRINGUP:
 
+#if (MULTICORE_BRING_UP == 1)
 #if 0
         .word   0xEC510F1F                          //; mrrc p15, 1, r0, r1, c15        - smp enable
         .word   0xE3800040                          //; orr r0, r0, #0x40
@@ -139,6 +146,7 @@ CPUBRINGUP:
         mrrc    p15, 1, r0, r1, c15                 //; smp enable
         orr     r0, r0, #0x40
         mcrr    p15, 1, r0, r1, c15
+#endif
 #endif
 
         mov     r0, #0xFF000000

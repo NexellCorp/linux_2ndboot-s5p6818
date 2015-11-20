@@ -65,8 +65,6 @@ void SimpleMemoryTest(U32 * pStart,U32 * pEnd);
 #if (CCI400_COHERENCY_ENABLE == 1)
 void initCCI400(void)
 {
-    struct NX_CCI400_RegisterSet *pReg_CCI400 = (struct NX_CCI400_RegisterSet *)PHY_BASEADDR_CCI400_MODULE;
-
     //before set barrier instruction.
     SetIO32( &pReg_CCI400->SCR, 1<<0);                      // static bus disable speculative fetches
     SetIO32( &pReg_CCI400->SCR, 1<<1);                      // SFR bus disable speculative fetches
@@ -77,15 +75,16 @@ void initCCI400(void)
     WriteIO32( &pReg_CCI400->CSI[BUSID_CODA].SCR,   0 );    // snoop request disable
     WriteIO32( &pReg_CCI400->CSI[BUSID_TOP].SCR,    0 );    // snoop request disable
 
-    SetIO32  ( &pReg_CCI400->CSI[BUSID_CPUG1].SCR,  (1<<0) );    // cpu 4~7 Snoop Req
-    while((ReadIO32(&pReg_CCI400->STSR) & 0x1) != 0);
-    SetIO32  ( &pReg_CCI400->CSI[BUSID_CPUG1].SCR,  (1<<1) );    // cpu 4~7 DVM Req
-    while((ReadIO32(&pReg_CCI400->STSR) & 0x1) != 0);
+#if (MULTICORE_BRING_UP == 1)
+    WriteIO32( &pReg_CCI400->CSI[BUSID_CPUG0].SCR,  0x3 );      // cpu 0~3 Snoop & DVM Req
+    while(ReadIO32(&pReg_CCI400->STSR) & 0x1);
 
-    SetIO32  ( &pReg_CCI400->CSI[BUSID_CPUG0].SCR,  (1<<0) );    // cpu 0~3 Snoop Req
-    while((ReadIO32(&pReg_CCI400->STSR) & 0x1) != 0);
-    SetIO32  ( &pReg_CCI400->CSI[BUSID_CPUG0].SCR,  (1<<1) );    // cpu 0~3 DVM Req
-    while((ReadIO32(&pReg_CCI400->STSR) & 0x1) != 0);
+    WriteIO32( &pReg_CCI400->CSI[BUSID_CPUG1].SCR,  0x3 );      // cpu 4~7 Snoop & DVM Req
+    while(ReadIO32(&pReg_CCI400->STSR) & 0x1);
+#else
+    WriteIO32( &pReg_CCI400->CSI[BUSID_CPUG0].SCR,  0x0 );
+    WriteIO32( &pReg_CCI400->CSI[BUSID_CPUG1].SCR,  0x0 );
+#endif
 }
 #endif  // #if (CCI400_COHERENCY_ENABLE == 1)
 
@@ -114,6 +113,20 @@ void BootMain( U32 CPUID )
     temp  = ReadIO32( &pReg_Tieoff->TIEOFFREG[111] ) & ~((0x7 << 23) | (0x7 << 17));
     temp |= ((EMA_VALUE << 23) | (EMA_VALUE << 17));
     WriteIO32( &pReg_Tieoff->TIEOFFREG[111], temp);
+
+    //--------------------------------------------------------------------------
+    // Set Affinity ID
+    //--------------------------------------------------------------------------
+
+    // Set Affinity level1 for CPU Cluster1
+    temp  = ReadIO32( &pReg_Tieoff->TIEOFFREG[95] ) & 0x00FFFFFF;
+    temp |= (1 << 24);
+    WriteIO32( &pReg_Tieoff->TIEOFFREG[95], temp);
+
+    // Set Affinity level2 for CPU Cluster1
+    temp  = ReadIO32( &pReg_Tieoff->TIEOFFREG[96] ) & 0xF0;
+//    temp |= (1 << 0);
+    WriteIO32( &pReg_Tieoff->TIEOFFREG[96], temp);
 
 
     // Debug Console

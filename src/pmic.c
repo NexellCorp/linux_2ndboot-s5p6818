@@ -231,9 +231,6 @@ static U8 nxe2000_get_dcdc_step(int want_vol)
 inline void PMIC_Drone(void)
 {
     U8 pData[4];
-    U32 ecid_1 = ReadIO32(PHY_BASEADDR_ECID_MODULE + (1<<2));
-    int asv_idx = getASVIndex(ecid_1);
-    const struct vdd_core_tb_info *vdd_tb = &vdd_core_tables[asv_idx];
 
     I2C_Init(AXP_I2C_GPIO_GRP, AXP_I2C_SCL, AXP_I2C_SDA);
 
@@ -351,9 +348,6 @@ inline void PMIC_AVN(void)
 inline void PMIC_SVT(void)
 {
     U8 pData[4];
-    U32 ecid_1 = ReadIO32(PHY_BASEADDR_ECID_MODULE + (1<<2));
-    int asv_idx = getASVIndex(ecid_1);
-    const struct vdd_core_tb_info *vdd_tb = &vdd_core_tables[asv_idx];
 
     //
     // I2C init for CORE & NXE2000 power.
@@ -420,9 +414,11 @@ inline void PMIC_SVT(void)
 inline void PMIC_ASB(void)
 {
     U8 pData[4];
+#if 0
     U32 ecid_1 = ReadIO32(PHY_BASEADDR_ECID_MODULE + (1<<2));
     int asv_idx = getASVIndex(ecid_1);
     const struct vdd_core_tb_info *vdd_tb = &vdd_core_tables[asv_idx];
+#endif
 
     //
     // I2C init for Core power.

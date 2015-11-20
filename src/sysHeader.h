@@ -94,6 +94,7 @@ struct NX_WDT_RegisterSet               * const pReg_WDT        = (struct NX_WDT
 struct NX_RTC_RegisterSet               * const pReg_RTC        = (struct NX_RTC_RegisterSet        * const)PHY_BASEADDR_RTC_MODULE;
 #if defined(ARCH_NXP5430)
 struct NX_DREXTZ_RegisterSet            * const pReg_DrexTZ     = (struct NX_DREXTZ_RegisterSet     * const)PHY_BASEADDR_DREX_TZ_MODULE;
+struct NX_CCI400_RegisterSet            * const pReg_CCI400     = (struct NX_CCI400_RegisterSet     * const)PHY_BASEADDR_CCI400_MODULE;
 struct NX_GIC400_RegisterSet            * const pReg_GIC400     = (struct NX_GIC400_RegisterSet     * const)PHY_BASEADDR_INTC_MODULE;
 struct NX_TZPC_RegisterSet             (* const pReg_TZPC)[1]   = (struct NX_TZPC_RegisterSet   (* const)[])PHY_BASEADDR_TZPC0_MODULE;
 struct NX_TZC380_RegisterSet            * const pReg_TZC380     = (struct NX_TZC380_RegisterSet     * const)PHY_BASEADDR_A3BM_AXI_TOP_MASTER_BUS_MODULE;
@@ -115,6 +116,7 @@ extern struct NX_WDT_RegisterSet        * const pReg_WDT;
 extern struct NX_RTC_RegisterSet        * const pReg_RTC;
 #if defined(ARCH_NXP5430)
 extern struct NX_DREXTZ_RegisterSet     * const pReg_DrexTZ;
+extern struct NX_CCI400_RegisterSet     * const pReg_CCI400;
 extern struct NX_GIC400_RegisterSet     * const pReg_GIC400;
 extern struct NX_TZPC_RegisterSet      (* const pReg_TZPC)[1];
 extern struct NX_TZC380_RegisterSet     * const pReg_TZC380;

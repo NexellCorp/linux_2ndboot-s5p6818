@@ -30,30 +30,31 @@ extern void     DMC_Delay(int milisecond);
 void BringUpSlaveCPU(U32 CPUID)
 {
     WriteIO32( &pReg_ClkPwr->CPURESETMODE,      0x1);
+    WriteIO32( &pReg_ClkPwr->CPUPOWERDOWNREQ,   (1 << CPUID) );
     WriteIO32( &pReg_ClkPwr->CPUPOWERONREQ,     (1 << CPUID) );
 }
 
 void SetVectorLocation(U32 CPUID, CBOOL LowHigh)
 {
-    U32 regvalue;
+    U32 addr, bits, regvalue;
+
     if(CPUID & 0x4)    // cpu 4, 5, 6, 7
     {
-        regvalue = ReadIO32(&pReg_Tieoff->TIEOFFREG[95]);
-        if(LowHigh)
-            regvalue |= 1<<(12+(CPUID & 0x3));
-        else
-            regvalue &= ~(1<<(12+(CPUID & 0x3)));
-        WriteIO32(&pReg_Tieoff->TIEOFFREG[95], regvalue);
+        addr = (U32)&pReg_Tieoff->TIEOFFREG[95];
+        bits = 1<<(12+(CPUID & 0x3));
     }
-    else    // cpu 0, 1, 2, 3
+    else
     {
-        regvalue = ReadIO32(&pReg_Tieoff->TIEOFFREG[78]);
-        if(LowHigh)
-            regvalue |= 1<<(20+(CPUID & 0x3));
-        else
-            regvalue &= ~(1<<(20+(CPUID & 0x3)));
-        WriteIO32(&pReg_Tieoff->TIEOFFREG[78], regvalue);
+        addr = (U32)&pReg_Tieoff->TIEOFFREG[78];
+        bits = 1<<(20+(CPUID & 0x3));
     }
+
+    regvalue = ReadIO32(addr);
+    if(LowHigh)
+        regvalue |= bits;
+    else
+        regvalue &= ~bits;
+    WriteIO32(addr, regvalue);
 }
 #endif
 
@@ -121,7 +122,7 @@ void SubCPUBoot( U32 CPUID )
     pCPUStartInfo->WakeupFlag = 1;
     DebugPutch('0'+CPUID);
 
-    do{
+    do {
         register void (*pLaunch)(void);
         __asm__ __volatile__ ("wfi");
 

@@ -179,14 +179,13 @@ void	DebugPutch( S8 ch )
 
 CBOOL	DebugIsTXEmpty(void)
 {
-	const U32 TX_FIFO_EMPTY	= 1<<2;
-	return (CBOOL)( pReg_Uart->USTATUS & TX_FIFO_EMPTY );
+	return (CBOOL)( (pReg_Uart->FSTATUS >> 16) & 0xFF) ? 0 : 1;
 }
 
 CBOOL	DebugIsBusy(void)
 {
-	const U32 UART_TX_BUSY	= 1<<2;
-	return (CBOOL)( pReg_Uart->FSTATUS & UART_TX_BUSY );
+	const U32 TX_TRANS_EMPTY	= 1<<2;
+	return (CBOOL)( pReg_Uart->USTATUS & TX_TRANS_EMPTY );
 }
 
 S8	DebugGetch( void )
