@@ -2518,7 +2518,7 @@ CBOOL init_DDR3(U32 isResume)
         (0x0    <<   3) |           // [    3] fp_resync. Force DLL Resyncronization : 1. Test : 0x0
         (0x0    <<   2) |           // [    2] Drive Memory DQ Bus Signals
         (0x0    <<   1) |           // [    1] sl_dll_dyn_con. Turn On PHY slave DLL dynamically. Disable : 0, Enable : 1
-        (0x0    <<   0));           // [    0] mem_term_chips. Memory Termination between chips(2CS). Disable : 0, Enable : 1
+        (0x1    <<   0));           // [    0] mem_term_chips. Memory Termination between chips(2CS). Disable : 0, Enable : 1
 
     temp = (U32)(
         (0x0    <<  28) |           // [   28] dfi_init_start

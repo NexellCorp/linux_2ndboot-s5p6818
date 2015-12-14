@@ -177,15 +177,24 @@ void	DebugPutch( S8 ch )
 	pReg_Uart->THR = (U32)ch;
 }
 
+CBOOL	DebugIsUartTxDone(void)
+{
+	const U32 TX_TRANS_EMPTY	= 1<<2;
+	if ( (pReg_Uart->FSTATUS >> 16) & 0xFF )
+		return (CBOOL)CFALSE;
+	else
+		return (CBOOL)(pReg_Uart->USTATUS & TX_TRANS_EMPTY) ? CTRUE : CFALSE;
+}
+
 CBOOL	DebugIsTXEmpty(void)
 {
-	return (CBOOL)( (pReg_Uart->FSTATUS >> 16) & 0xFF) ? 0 : 1;
+	return (CBOOL)( (pReg_Uart->FSTATUS >> 16) & 0xFF) ? CFALSE : CTRUE;
 }
 
 CBOOL	DebugIsBusy(void)
 {
 	const U32 TX_TRANS_EMPTY	= 1<<2;
-	return (CBOOL)( pReg_Uart->USTATUS & TX_TRANS_EMPTY );
+	return (CBOOL)(pReg_Uart->USTATUS & TX_TRANS_EMPTY) ? CTRUE : CFALSE;
 }
 
 S8	DebugGetch( void )

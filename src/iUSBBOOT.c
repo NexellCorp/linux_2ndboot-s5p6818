@@ -449,7 +449,7 @@ static void nx_usb_int_bulkout(USBBOOTSTATUS * pUSBBootStatus, struct NX_SecondB
         dprintf("Bin Packet Size = %d => 0x%08X, %d\r\n", iRxSize, pUSBBootStatus->RxBuffAddr, pUSBBootStatus->iRxSize);
     #endif
 
-        pUSBBootStatus->RxBuffAddr    += fifo_cnt_byte;
+        pUSBBootStatus->RxBuffAddr += fifo_cnt_byte;
         pUSBBootStatus->iRxSize    -= fifo_cnt_byte;
 
         if( pUSBBootStatus->iRxSize <= 0 )

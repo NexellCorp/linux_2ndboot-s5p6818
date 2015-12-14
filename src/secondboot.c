@@ -227,8 +227,7 @@ void BootMain( U32 CPUID )
 
     printf("\r\n\nworking to aarch%d\r\nwaiting for pll change..\r\n", sizeof(void*)*8);
 
-    while(!DebugIsTXEmpty());
-    while(DebugIsBusy());
+    while(!DebugIsUartTxDone());
 
 
     //--------------------------------------------------------------------------
@@ -400,16 +399,13 @@ void BootMain( U32 CPUID )
         printf( " Image Loading Done!\r\n" );
         printf( "Launch to 0x%08X\r\n", (MPTRS)pLaunch );
         temp = 0x10000000;
-        while(!DebugIsTXEmpty() && temp--);
-        temp = 0x10000000;
-        while(DebugIsBusy() && temp--);
+        while(!DebugIsUartTxDone() && temp--);
         pLaunch(0, 4330);
     }
 
     printf( " Image Loading Failure Try to USB boot\r\n" );
     temp = 0x10000000;
-    while(!DebugIsTXEmpty());
-    while(DebugIsBusy() && temp--);
+    while(!DebugIsUartTxDone() && temp--);
     RomUSBBoot((U32)0x0000009C);
     while(1);
 }

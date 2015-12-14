@@ -46,7 +46,8 @@ CROSS_TOOL_TOP			=
 CROSS_TOOL			= $(CROSS_TOOL_TOP)arm-none-eabi-
 else
 CROSS_TOOL_TOP			=
-CROSS_TOOL			= $(CROSS_TOOL_TOP)arm-none-eabi-
+CROSS_TOOL			= $(CROSS_TOOL_TOP)arm-eabi-
+#CROSS_TOOL			= $(CROSS_TOOL_TOP)arm-linux-gnueabihf-
 endif
 endif
 

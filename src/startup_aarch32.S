@@ -57,15 +57,10 @@ BuildInfo:
 Reset_Handler:
 //;        mcr     p15, 0 r0, c8, c9, 0                //; set debug break;
         mrc     p15, 0, r12, c0, c0, 5              //; Get our cpu id
-#if 0
-        tst     r12, #0x4400                        //; check processor affinity
-        orrne   r12, r12, #4                        //; mark cpu0 or cpu1
-        ands    r12, r12, #0xF                      //; Save CPU id
-#else
         and     r11, r12, #(0xFF << 8)              //; mask cluster id
         and     r12, r12, #0xFF                     //; mask cpu id
         orr     r12, r11, lsr #6                    //; save cpu id
-#endif
+        ands    r12, r12, #0xF
 
         msr     CPSR_c, #(Mode_SVC|I_Bit|F_Bit)
 
@@ -89,6 +84,7 @@ Reset_Handler:
         orr     r0, r0, #0x00000230                 //; scratch register
         mov     r1, #0xFFFFFFFF                     //; mark to invalid address
         str     r1, [r0]                            //; set invalid jump address
+
 //;==================================================================
 //; Clear SRAM
 //;==================================================================
@@ -269,9 +265,10 @@ PhysicalStart:
 
         //; get cpu nember
         mrc     p15, 0, r3, c0, c0, 5   //; Get our cpu id
-        tst     r3, #0x4400             //; check processor affinity
-        orrne   r3, r3, #4              //; mark cpu0 or cpu1
-        ands    r3, r3, #0xF            //; Save CPU id
+        and     r2, r3, #(0xFF << 8)    //; mask cluster id
+        and     r3, r3, #0xFF           //; mask cpu id
+        orr     r3, r2, lsr #6          //; save cpu id
+        ands    r3, r3, #0xF
 
         ldr     r0, =g_store_vaddr
         lsl     r2, r3, #2
@@ -354,9 +351,9 @@ EnableMMU:
 
         //; get cpu nember
         mrc     p15, 0, r3, c0, c0, 5   //; Get our cpu id
-        tst     r3, #0x4400             //; check processor affinity
-        orrne   r3, r3, #4              //; mark cpu0 or cpu1
-        and     r3, r3, #0xF            //; Save CPU id
+        and     r2, r3, #(0xFF << 8)    //; mask cluster id
+        and     r3, r3, #0xFF           //; mask cpu id
+        orr     r3, r2, lsr #6          //; save cpu id
 
         lsl     r2, r3, #2
         ldr     r4, [r0, r2]

@@ -26,6 +26,7 @@
 CBOOL   DebugInit( void );
 void    DebugPutch( S8 ch );
 S8      DebugGetch( void );
+CBOOL   DebugIsUartTxDone(void);
 CBOOL   DebugIsBusy(void);
 CBOOL   DebugIsTXEmpty(void);
 

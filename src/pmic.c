@@ -367,28 +367,10 @@ inline void PMIC_SVT(void)
     pData[0] |= 1<<5;
     I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_SYSCNTL2, pData, 1);
 
-#if (AUTO_VOLTAGE_CONTROL == 1)
-    if (ecid_1)
-    {
-        U8 Data;
-
-        pData[0] = MP8845_mV_list[asv_idx] | 1<<7;
-        Data = pData[0];
-        I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
-
-        I2C_Read(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
-
-        if(Data != pData[0])
-        {
-            printf("verify arm voltage code write:%d, read:%d\r\n", Data, pData[0]);
-        }
-    }
-#else
 //    pData[0] = 90 | 1<<7;   // 90: 1.2V
 //    pData[0] = 80 | 1<<7;   // 80: 1.135V
     pData[0] = 75 | 1<<7;   // 75: 1.1V
     I2C_Write(I2C_ADDR_MP8845, MP8845C_REG_VSEL, pData, 1);
-#endif
 #else
     pData[0] = nxe2000_get_dcdc_step(NXE2000_DEF_DDC2_VOL);
     I2C_Write(I2C_ADDR_NXE2000, NXE2000_REG_DC2VOL, pData, 1);  // Core - second power
