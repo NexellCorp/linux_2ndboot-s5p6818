@@ -57,9 +57,14 @@ BuildInfo:
 Reset_Handler:
 //;        mcr     p15, 0 r0, c8, c9, 0                //; set debug break;
         mrc     p15, 0, r12, c0, c0, 5              //; Get our cpu id
+#if (CONFIG_RESET_AFFINITY_ID == 1)
         and     r11, r12, #(0xFF << 8)              //; mask cluster id
         and     r12, r12, #0xFF                     //; mask cpu id
         orr     r12, r11, lsr #6                    //; save cpu id
+#else
+        tst     r12, #0x4400                        //; check processor affinity
+        orrne   r12, r12, #4                        //; mark cpu0 or cpu1
+#endif
         ands    r12, r12, #0xF
 
         msr     CPSR_c, #(Mode_SVC|I_Bit|F_Bit)
@@ -265,9 +270,14 @@ PhysicalStart:
 
         //; get cpu nember
         mrc     p15, 0, r3, c0, c0, 5   //; Get our cpu id
+#if (CONFIG_RESET_AFFINITY_ID == 1)
         and     r2, r3, #(0xFF << 8)    //; mask cluster id
         and     r3, r3, #0xFF           //; mask cpu id
         orr     r3, r2, lsr #6          //; save cpu id
+#else
+        tst     r3, #0x4400             //; check processor affinity
+        orrne   r3, r3, #4              //; mark cpu0 or cpu1
+#endif
         ands    r3, r3, #0xF
 
         ldr     r0, =g_store_vaddr
@@ -351,9 +361,15 @@ EnableMMU:
 
         //; get cpu nember
         mrc     p15, 0, r3, c0, c0, 5   //; Get our cpu id
+#if (CONFIG_RESET_AFFINITY_ID == 1)
         and     r2, r3, #(0xFF << 8)    //; mask cluster id
         and     r3, r3, #0xFF           //; mask cpu id
         orr     r3, r2, lsr #6          //; save cpu id
+#else
+        tst     r3, #0x4400             //; check processor affinity
+        orrne   r3, r3, #4              //; mark cpu0 or cpu1
+#endif
+        and     r3, r3, #0xF            //; Save CPU id
 
         lsl     r2, r3, #2
         ldr     r4, [r0, r2]

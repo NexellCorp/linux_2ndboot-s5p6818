@@ -49,6 +49,7 @@
 #define MULTICORE_SLEEP_CONTROL     (1)
 #define MULTICORE_BRING_UP          (1)
 #define CCI400_COHERENCY_ENABLE     (1)
+#define CONFIG_RESET_AFFINITY_ID    (0) // Dependent kernel 3.18.x
 
 
 #endif  //	__CFG_BOOT_DEFINE_H__

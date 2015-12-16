@@ -117,7 +117,7 @@ void BootMain( U32 CPUID )
     //--------------------------------------------------------------------------
     // Set Affinity ID
     //--------------------------------------------------------------------------
-
+#if (CONFIG_RESET_AFFINITY_ID == 1)
     // Set Affinity level1 for CPU Cluster1
     temp  = ReadIO32( &pReg_Tieoff->TIEOFFREG[95] ) & 0x00FFFFFF;
     temp |= (1 << 24);
@@ -127,9 +127,11 @@ void BootMain( U32 CPUID )
     temp  = ReadIO32( &pReg_Tieoff->TIEOFFREG[96] ) & 0xF0;
 //    temp |= (1 << 0);
     WriteIO32( &pReg_Tieoff->TIEOFFREG[96], temp);
+#endif
 
-
-    // Debug Console
+    //--------------------------------------------------------------------------
+    // Init debug
+    //--------------------------------------------------------------------------
     DebugInit();
 
     WriteIO32(&pReg_Alive->ALIVEPWRGATEREG, 1);
