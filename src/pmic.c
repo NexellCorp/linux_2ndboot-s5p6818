@@ -67,6 +67,13 @@ void DMC_Delay(int milisecond);
 #define MP8845_PMIC_INIT (1)
 #endif
 
+#ifdef AVN_BT_PMIC_INIT
+#undef NXE2000_I2C_GPIO_GRP
+#define NXE2000_I2C_GPIO_GRP 4 // E group, FineDigital VDDB_1.2V (arm)
+#define NXE2000_I2C_SCL 9
+#define NXE2000_I2C_SDA 8
+#endif
+
 #ifdef SVT_PMIC_INIT
 #undef NXE2000_I2C_GPIO_GRP
 #define NXE2000_I2C_GPIO_GRP 3 // D group, VCC1P0_CORE, NXE2000, MP8845
@@ -364,6 +371,39 @@ inline void PMIC_AVN(void)
 }
 #endif // BF700
 
+#ifdef AVN_BT_PMIC_INIT
+/************************************************
+  * AVN_BT Board (PMIC: NXE2000)  - Reference 2016.06.10
+  * ARM   : 1.25V
+  * CORE : 1.2V
+  * DDR   : 1.5V
+  * DDR_IO : 1.5V
+  ************************************************/
+inline void PMIC_AVN_BT(void)
+{
+	U8 pData[4];
+
+	/* I2C init for NXE2000 power. */
+	I2C_Init(NXE2000_I2C_GPIO_GRP, NXE2000_I2C_SCL, NXE2000_I2C_SDA);
+
+	/* Core voltage change */
+	pData[0] = nxe2000_get_dcdc_step(NXE2000_DEF_DDC2_VOL);
+	I2C_Write(I2C_ADDR_NXE2000, NXE2000_REG_DC2VOL, pData, 1);
+
+	/* ARM voltage change */
+#if (ARM_VOLTAGE_CONTROL_SKIP == 0)
+	pData[0] = nxe2000_get_dcdc_step(NXE2000_DEF_DDC1_VOL);
+	I2C_Write(I2C_ADDR_NXE2000, NXE2000_REG_DC1VOL, pData, 1);
+#endif
+
+	/* DDR/DDRIO voltage change */
+	pData[0] = nxe2000_get_dcdc_step(NXE2000_DEF_DDC4_VOL);
+	I2C_Write(I2C_ADDR_NXE2000, NXE2000_REG_DC4VOL, pData, 1);
+	I2C_Write(I2C_ADDR_NXE2000, NXE2000_REG_DC5VOL, pData, 1);
+}
+#endif // SVT
+
+
 #ifdef SVT_PMIC_INIT
 /************************************************
   * SVT Board (PMIC: NXE2000)  - Reference 2016.04.05
@@ -496,6 +536,10 @@ void initPMIC(void)
 #if defined(BF700_PMIC_INIT) || defined(AVN_PMIC_INIT)
 	PMIC_AVN();
 #endif // BF700
+
+#if defined(AVN_BT_PMIC_INIT)
+	PMIC_AVN_BT();
+#endif // AVN_BT
 
 #ifdef SVT_PMIC_INIT
 	PMIC_SVT();

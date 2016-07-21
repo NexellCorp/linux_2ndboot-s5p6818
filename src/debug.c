@@ -30,7 +30,7 @@ void    ResetCon(U32 devicenum, CBOOL en);
 void    GPIOSetAltFunction(U32 AltFunc);
 U32     NX_CLKPWR_GetPLLFrequency(U32 PllNumber);
 
-#ifdef AVN      // avn debug port is UART3
+#if defined(AVN) || defined(AVN_BT)     // avn debug port is UART3
 static struct NX_UART_RegisterSet   * const pReg_Uart       = (struct NX_UART_RegisterSet       * const)PHY_BASEADDR_pl01115_Uart_nodma0_MODULE;
 static struct NX_CLKGEN_RegisterSet * const pReg_UartClkGen = (struct NX_CLKGEN_RegisterSet     * const)PHY_BASEADDR_CLKGEN25_MODULE;
 #else
@@ -93,7 +93,7 @@ CBOOL DebugInit( void )
 
 	SOURCE_CLOCK = NX_CLKPWR_GetPLLFreq(NX_CLKSRC_UART);
 
-#ifdef AVN
+#if defined(AVN) || defined(AVN_BT)
 #if DIRECT_IO
 	register U32 *pGPIOxReg = (U32 *)&pReg_GPIO[(PADINDEX_OF_pl01115_Uart_nodma0_UARTRXD>>8)&0x7]->GPIOxALTFN[(PADINDEX_OF_pl01115_Uart_nodma0_UARTRXD>>7)&0x1];
 	*pGPIOxReg = (*pGPIOxReg & ~0x0000000C) | 0x00000004;

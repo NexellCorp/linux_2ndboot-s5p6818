@@ -37,6 +37,7 @@ endif
 #BOARD				= ASB
 BOARD				= DRONE
 #BOARD				= AVN
+#BOARD				= AVN_BT
 #BOARD				= BF700
 
 # cross-tool pre-header
