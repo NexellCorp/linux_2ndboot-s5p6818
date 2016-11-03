@@ -166,14 +166,14 @@ void DUMP_PHY_REG(void)
 
 #if defined(MEM_TYPE_DDR3)
 //inline
-void SendDirectCommand(SDRAM_CMD cmd, U8 chipnum, SDRAM_MODE_REG mrx, U16 value)
+void send_directcmd(SDRAM_CMD cmd, U8 chipnum, SDRAM_MODE_REG mrx, U16 value)
 {
     WriteIO32( &pReg_Drex->DIRECTCMD, (U32)((cmd<<24) | ((chipnum & 1)<<20) | (mrx<<16) | value) );
 }
 #endif
 #if defined(MEM_TYPE_LPDDR23)
 //inline
-void SendDirectCommand(SDRAM_CMD cmd, U8 chipnum, SDRAM_MODE_REG mrx, U16 value)
+void send_directcmd(SDRAM_CMD cmd, U8 chipnum, SDRAM_MODE_REG mrx, U16 value)
 {
     WriteIO32( &pReg_Drex->DIRECTCMD, (U32)((cmd<<24) | ((chipnum & 1)<<20) | (((mrx>>3) & 0x7)<<16) | ((mrx & 0x7)<<10) | ((value & 0xFF)<<2) | ((mrx>>6) & 0x3)) );
 }
@@ -205,14 +205,14 @@ void enterSelfRefresh(void)
     }
 
     /* Send PALL command */
-    SendDirectCommand(SDRAM_CMD_PALL, 0, (SDRAM_MODE_REG)CNULL, CNULL);
+    send_directcmd(SDRAM_CMD_PALL, 0, (SDRAM_MODE_REG)CNULL, CNULL);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-    SendDirectCommand(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
+    send_directcmd(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
 #endif
 #else
     if(pSBI->DII.ChipNum > 1)
-        SendDirectCommand(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
+        send_directcmd(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
 #endif
     DMC_Delay(100);
 
@@ -227,14 +227,14 @@ void enterSelfRefresh(void)
     MR.MR2.CWL      = (pSBI->DII.CWL - 5);
 #endif
 
-    SendDirectCommand(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR2, MR.Reg);
+    send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR2, MR.Reg);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-    SendDirectCommand(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR2, MR.Reg);
+    send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR2, MR.Reg);
 #endif
 #else
     if(pSBI->DII.ChipNum > 1)
-        SendDirectCommand(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR2, MR.Reg);
+        send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR2, MR.Reg);
 #endif
 
     MR.Reg          = 0;
@@ -259,25 +259,25 @@ void enterSelfRefresh(void)
 #endif
 #endif
 
-    SendDirectCommand(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR1, MR.Reg);
+    send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR1, MR.Reg);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-    SendDirectCommand(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR1, MR.Reg);
+    send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR1, MR.Reg);
 #endif
 #else
     if(pSBI->DII.ChipNum > 1)
-        SendDirectCommand(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR1, MR.Reg);
+        send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR1, MR.Reg);
 #endif
 
     /* Enter self-refresh command */
-    SendDirectCommand(SDRAM_CMD_REFS, 0, (SDRAM_MODE_REG)CNULL, CNULL);
+    send_directcmd(SDRAM_CMD_REFS, 0, (SDRAM_MODE_REG)CNULL, CNULL);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-    SendDirectCommand(SDRAM_CMD_REFS, 1, (SDRAM_MODE_REG)CNULL, CNULL);
+    send_directcmd(SDRAM_CMD_REFS, 1, (SDRAM_MODE_REG)CNULL, CNULL);
 #endif
 #else
     if(pSBI->DII.ChipNum > 1)
-        SendDirectCommand(SDRAM_CMD_REFS, 1, (SDRAM_MODE_REG)CNULL, CNULL);
+        send_directcmd(SDRAM_CMD_REFS, 1, (SDRAM_MODE_REG)CNULL, CNULL);
 #endif
 
     do
@@ -312,14 +312,14 @@ void exitSelfRefresh(void)
     DMC_Delay(10);
 
     /* Send PALL command */
-    SendDirectCommand(SDRAM_CMD_PALL, 0, (SDRAM_MODE_REG)CNULL, CNULL);
+    send_directcmd(SDRAM_CMD_PALL, 0, (SDRAM_MODE_REG)CNULL, CNULL);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-    SendDirectCommand(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
+    send_directcmd(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
 #endif
 #else
     if(pSBI->DII.ChipNum > 1)
-        SendDirectCommand(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
+        send_directcmd(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
 #endif
 
     MR.Reg          = 0;
@@ -344,14 +344,14 @@ void exitSelfRefresh(void)
 #endif
 #endif
 
-    SendDirectCommand(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR1, MR.Reg);
+    send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR1, MR.Reg);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-    SendDirectCommand(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR1, MR.Reg);
+    send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR1, MR.Reg);
 #endif
 #else
     if(pSBI->DII.ChipNum > 1)
-        SendDirectCommand(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR1, MR.Reg);
+        send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR1, MR.Reg);
 #endif
 
     // odt on
@@ -365,25 +365,25 @@ void exitSelfRefresh(void)
     MR.MR2.CWL      = (pSBI->DII.CWL - 5);
 #endif
 
-    SendDirectCommand(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR2, MR.Reg);
+    send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR2, MR.Reg);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-    SendDirectCommand(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR2, MR.Reg);
+    send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR2, MR.Reg);
 #endif
 #else
     if(pSBI->DII.ChipNum > 1)
-        SendDirectCommand(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR2, MR.Reg);
+        send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR2, MR.Reg);
 #endif
 
     /* Exit self-refresh command */
-    SendDirectCommand(SDRAM_CMD_REFSX, 0, (SDRAM_MODE_REG)CNULL, CNULL);
+    send_directcmd(SDRAM_CMD_REFSX, 0, (SDRAM_MODE_REG)CNULL, CNULL);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-    SendDirectCommand(SDRAM_CMD_REFSX, 1, (SDRAM_MODE_REG)CNULL, CNULL);
+    send_directcmd(SDRAM_CMD_REFSX, 1, (SDRAM_MODE_REG)CNULL, CNULL);
 #endif
 #else
     if(pSBI->DII.ChipNum > 1)
-        SendDirectCommand(SDRAM_CMD_REFSX, 1, (SDRAM_MODE_REG)CNULL, CNULL);
+        send_directcmd(SDRAM_CMD_REFSX, 1, (SDRAM_MODE_REG)CNULL, CNULL);
 #endif
 
 #if 0
@@ -846,7 +846,7 @@ CBOOL DDR_CA_Calibration(void)
 
 
 #if 0
-    SendDirectCommand(SDRAM_CMD_MRR, 0, 5, 0);
+    send_directcmd(SDRAM_CMD_MRR, 0, 5, 0);
     temp = ReadIO32(&pReg_Drex->MRSTATUS);
     if (temp & 0x1)
     {
@@ -858,7 +858,7 @@ CBOOL DDR_CA_Calibration(void)
 
 
 #if 0
-    SendDirectCommand(SDRAM_CMD_MRR, 0, 8, 0);
+    send_directcmd(SDRAM_CMD_MRR, 0, 8, 0);
     temp = ReadIO32( &pReg_Drex->MRSTATUS );
     if ( temp )
     {
@@ -875,24 +875,24 @@ CBOOL DDR_CA_Calibration(void)
 //#############
 
 #if 0
-        SendDirectCommand(SDRAM_CMD_PALL, 0, (SDRAM_MODE_REG)CNULL, CNULL);
+        send_directcmd(SDRAM_CMD_PALL, 0, (SDRAM_MODE_REG)CNULL, CNULL);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-        SendDirectCommand(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
+        send_directcmd(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
 #else
         if (pSBI->DII.ChipNum > 1)
-            SendDirectCommand(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
+            send_directcmd(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
 #endif
 #endif
 #endif
 
-        SendDirectCommand(SDRAM_CMD_MRS, 0, 41, 0xA4 );             //- CH0 : Send MR41 to start CA calibration for LPDDR3 : MA=0x29 OP=0xA4, 0x50690
+        send_directcmd(SDRAM_CMD_MRS, 0, 41, 0xA4 );             //- CH0 : Send MR41 to start CA calibration for LPDDR3 : MA=0x29 OP=0xA4, 0x50690
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-        SendDirectCommand(SDRAM_CMD_MRS, 1, 41, 0xA4);              //- CH1 : Send MR41 to start CA calibration for LPDDR3 : MA=0x29 OP=0xA4, 0x50690
+        send_directcmd(SDRAM_CMD_MRS, 1, 41, 0xA4);              //- CH1 : Send MR41 to start CA calibration for LPDDR3 : MA=0x29 OP=0xA4, 0x50690
 #else
         if (pSBI->DII.ChipNum > 1)
-            SendDirectCommand(SDRAM_CMD_MRS, 1, 41, 0xA4);          //- CH1 : Send MR41 to start CA calibration for LPDDR3 : MA=0x29 OP=0xA4, 0x50690
+            send_directcmd(SDRAM_CMD_MRS, 1, 41, 0xA4);          //- CH1 : Send MR41 to start CA calibration for LPDDR3 : MA=0x29 OP=0xA4, 0x50690
 #endif
 #endif
 
@@ -924,24 +924,24 @@ CBOOL DDR_CA_Calibration(void)
 //#############
 
 #if 0
-        SendDirectCommand(SDRAM_CMD_PALL, 0, (SDRAM_MODE_REG)CNULL, CNULL);
+        send_directcmd(SDRAM_CMD_PALL, 0, (SDRAM_MODE_REG)CNULL, CNULL);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-        SendDirectCommand(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
+        send_directcmd(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
 #else
         if (pSBI->DII.ChipNum > 1)
-            SendDirectCommand(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
+            send_directcmd(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
 #endif
 #endif
 #endif
 
-        SendDirectCommand(SDRAM_CMD_MRS, 0, 48, 0xC0);              // CH0 : Send MR48 to start CA calibration for LPDDR3 : MA=0x30 OP=0xC0, 0x60300
+        send_directcmd(SDRAM_CMD_MRS, 0, 48, 0xC0);              // CH0 : Send MR48 to start CA calibration for LPDDR3 : MA=0x30 OP=0xC0, 0x60300
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-        SendDirectCommand(SDRAM_CMD_MRS, 1, 48, 0xC0);              // CH1 : Send MR48 to start CA calibration for LPDDR3 : MA=0x30 OP=0xC0, 0x60300
+        send_directcmd(SDRAM_CMD_MRS, 1, 48, 0xC0);              // CH1 : Send MR48 to start CA calibration for LPDDR3 : MA=0x30 OP=0xC0, 0x60300
 #else
         if (pSBI->DII.ChipNum > 1)
-            SendDirectCommand(SDRAM_CMD_MRS, 1, 48, 0xC0);          // CH1 : Send MR48 to start CA calibration for LPDDR3 : MA=0x30 OP=0xC0, 0x60300
+            send_directcmd(SDRAM_CMD_MRS, 1, 48, 0xC0);          // CH1 : Send MR48 to start CA calibration for LPDDR3 : MA=0x30 OP=0xC0, 0x60300
 #endif
 #endif
 
@@ -1087,13 +1087,13 @@ WriteIO32( &pReg_DDRPHY->PHY_CON[10],   144 );
 //#############
 
     //*** Exiting Calibration Mode of LPDDR3 using MR42
-    SendDirectCommand(SDRAM_CMD_MRS, 0, 42, 0xA8);                  // CH0 : Send MR42 to exit from CA calibration mode for LPDDR3, MA=0x2A OP=0xA8, 0x50AA0
+    send_directcmd(SDRAM_CMD_MRS, 0, 42, 0xA8);                  // CH0 : Send MR42 to exit from CA calibration mode for LPDDR3, MA=0x2A OP=0xA8, 0x50AA0
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-    SendDirectCommand(SDRAM_CMD_MRS, 1, 42, 0xA8);                  //- CH1 : Send MR42 to exit from CA calibration mode for LPDDR3, MA=0x2A OP=0xA8, 0x50AA0
+    send_directcmd(SDRAM_CMD_MRS, 1, 42, 0xA8);                  //- CH1 : Send MR42 to exit from CA calibration mode for LPDDR3, MA=0x2A OP=0xA8, 0x50AA0
 #else
     if (pSBI->DII.ChipNum > 1)
-        SendDirectCommand(SDRAM_CMD_MRS, 1, 42, 0xA8);              //- CH1 : Send MR42 to exit from CA calibration mode for LPDDR3, MA=0x2A OP=0xA8, 0x50AA0
+        send_directcmd(SDRAM_CMD_MRS, 1, 42, 0xA8);              //- CH1 : Send MR42 to exit from CA calibration mode for LPDDR3, MA=0x2A OP=0xA8, 0x50AA0
 #endif
 #endif
 
@@ -1115,14 +1115,14 @@ CBOOL DDR_Gate_Leveling(void)
     MEMMSG("\r\n########## Gate Leveling - Start ##########\r\n");
 
 #if 1
-    SendDirectCommand(SDRAM_CMD_PALL, 0, (SDRAM_MODE_REG)CNULL, CNULL);
+    send_directcmd(SDRAM_CMD_PALL, 0, (SDRAM_MODE_REG)CNULL, CNULL);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-    SendDirectCommand(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
+    send_directcmd(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
 #endif
 #else
     if(pSBI->DII.ChipNum > 1)
-        SendDirectCommand(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
+        send_directcmd(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
 #endif
 #endif
 
@@ -1132,14 +1132,14 @@ CBOOL DDR_Gate_Leveling(void)
     MR.Reg          = 0;
     MR.MR3.MPR      = 1;
 
-    SendDirectCommand(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR3, MR.Reg);
+    send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR3, MR.Reg);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-    SendDirectCommand(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR.Reg);
+    send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR.Reg);
 #endif
 #else
     if(pSBI->DII.ChipNum > 1)
-        SendDirectCommand(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR.Reg);
+        send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR.Reg);
 #endif
 #endif  // #if defined(MEM_TYPE_DDR3)
 
@@ -1212,14 +1212,14 @@ gate_err_ret:
     /* Set MPR mode disable */
     MR.Reg          = 0;
 
-    SendDirectCommand(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR3, MR.Reg);
+    send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR3, MR.Reg);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-    SendDirectCommand(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR.Reg);
+    send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR.Reg);
 #endif
 #else
     if(pSBI->DII.ChipNum > 1)
-        SendDirectCommand(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR.Reg);
+        send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR.Reg);
 #endif
 #endif  // #if defined(MEM_TYPE_DDR3)
 
@@ -1249,14 +1249,14 @@ CBOOL DDR_Read_DQ_Calibration(void)
 #endif
 
 #if 1
-    SendDirectCommand(SDRAM_CMD_PALL, 0, (SDRAM_MODE_REG)CNULL, CNULL);
+    send_directcmd(SDRAM_CMD_PALL, 0, (SDRAM_MODE_REG)CNULL, CNULL);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-    SendDirectCommand(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
+    send_directcmd(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
 #endif
 #else
     if(pSBI->DII.ChipNum > 1)
-        SendDirectCommand(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
+        send_directcmd(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
 #endif
 #endif
 
@@ -1271,14 +1271,14 @@ CBOOL DDR_Read_DQ_Calibration(void)
     MR.Reg          = 0;
     MR.MR3.MPR      = 1;
 
-    SendDirectCommand(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR3, MR.Reg);
+    send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR3, MR.Reg);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-    SendDirectCommand(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR.Reg);
+    send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR.Reg);
 #endif
 #else
     if(pSBI->DII.ChipNum > 1)
-        SendDirectCommand(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR.Reg);
+        send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR.Reg);
 #endif
 
     WriteIO32( &pReg_DDRPHY->LP_DDR_CON[2],
@@ -1398,14 +1398,14 @@ rd_err_ret:
     /* Set MPR mode disable */
     MR.Reg          = 0;
 
-    SendDirectCommand(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR3, MR.Reg);
+    send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR3, MR.Reg);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-    SendDirectCommand(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR.Reg);
+    send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR.Reg);
 #endif
 #else
     if(pSBI->DII.ChipNum > 1)
-        SendDirectCommand(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR.Reg);
+        send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR.Reg);
 #endif
 #endif
 
@@ -2281,74 +2281,74 @@ CBOOL init_DDR3(U32 isResume)
     if (isResume == 0)
     {
         // Step 18, 19 :  Send NOP command.
-        SendDirectCommand(SDRAM_CMD_NOP, 0, (SDRAM_MODE_REG)CNULL, CNULL);
+        send_directcmd(SDRAM_CMD_NOP, 0, (SDRAM_MODE_REG)CNULL, CNULL);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-        SendDirectCommand(SDRAM_CMD_NOP, 1, (SDRAM_MODE_REG)CNULL, CNULL);
+        send_directcmd(SDRAM_CMD_NOP, 1, (SDRAM_MODE_REG)CNULL, CNULL);
 #endif
 #else
         if(pSBI->DII.ChipNum > 1)
-            SendDirectCommand(SDRAM_CMD_NOP, 1, (SDRAM_MODE_REG)CNULL, CNULL);
+            send_directcmd(SDRAM_CMD_NOP, 1, (SDRAM_MODE_REG)CNULL, CNULL);
 #endif
 
 
         // Step 20 :  Send MR2 command.
-        SendDirectCommand(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR2, MR2.Reg);
+        send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR2, MR2.Reg);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-        SendDirectCommand(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR2, MR2.Reg);
+        send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR2, MR2.Reg);
 #endif
 #else
         if(pSBI->DII.ChipNum > 1)
-            SendDirectCommand(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR2, MR2.Reg);
+            send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR2, MR2.Reg);
 #endif
 
 
         // Step 21 :  Send MR3 command.
-        SendDirectCommand(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR3, MR3.Reg);
+        send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR3, MR3.Reg);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-        SendDirectCommand(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR3.Reg);
+        send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR3.Reg);
 #endif
 #else
         if(pSBI->DII.ChipNum > 1)
-            SendDirectCommand(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR3.Reg);
+            send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR3.Reg);
 #endif
 
 
         // Step 22 :  Send MR1 command.
-        SendDirectCommand(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR1, MR1.Reg);
+        send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR1, MR1.Reg);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-        SendDirectCommand(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR1, MR1.Reg);
+        send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR1, MR1.Reg);
 #endif
 #else
         if(pSBI->DII.ChipNum > 1)
-            SendDirectCommand(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR1, MR1.Reg);
+            send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR1, MR1.Reg);
 #endif
 
 
         // Step 23 :  Send MR0 command.
-        SendDirectCommand(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR0, MR0.Reg);
+        send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR0, MR0.Reg);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-        SendDirectCommand(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR0, MR0.Reg);
+        send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR0, MR0.Reg);
 #endif
 #else
         if(pSBI->DII.ChipNum > 1)
-            SendDirectCommand(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR0, MR0.Reg);
+            send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR0, MR0.Reg);
 #endif
 
 
         // Step 25 : Send ZQ Init command
-        SendDirectCommand(SDRAM_CMD_ZQINIT, 0, (SDRAM_MODE_REG)CNULL, CNULL);
+        send_directcmd(SDRAM_CMD_ZQINIT, 0, (SDRAM_MODE_REG)CNULL, CNULL);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-        SendDirectCommand(SDRAM_CMD_ZQINIT, 1, (SDRAM_MODE_REG)CNULL, CNULL);
+        send_directcmd(SDRAM_CMD_ZQINIT, 1, (SDRAM_MODE_REG)CNULL, CNULL);
 #endif
 #else
         if(pSBI->DII.ChipNum > 1)
-            SendDirectCommand(SDRAM_CMD_ZQINIT, 1, (SDRAM_MODE_REG)CNULL, CNULL);
+            send_directcmd(SDRAM_CMD_ZQINIT, 1, (SDRAM_MODE_REG)CNULL, CNULL);
 #endif
         DMC_Delay(100);
     }   // if (isResume)
@@ -2586,14 +2586,14 @@ CBOOL init_DDR3(U32 isResume)
 
 
     /* Send PALL command */
-    SendDirectCommand(SDRAM_CMD_PALL, 0, (SDRAM_MODE_REG)CNULL, CNULL);
+    send_directcmd(SDRAM_CMD_PALL, 0, (SDRAM_MODE_REG)CNULL, CNULL);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
-    SendDirectCommand(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
+    send_directcmd(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
 #endif
 #else
     if(pSBI->DII.ChipNum > 1)
-        SendDirectCommand(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
+        send_directcmd(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
 #endif
 
     WriteIO32( &pReg_Drex->PHYCONTROL,
@@ -2809,14 +2809,14 @@ CBOOL init_DDR3(U32 isResume)
     //14. Confirm that clocks(CK, CK#) need to be started and stabilized for at least 10 ns or 5 tCK (which is larger) before CKE goes active.
 
     //15. Issue a NOP command using the DirectCmd register to assert and to hold CKE to a logic high level.
-    SendDirectCommand(SDRAM_CMD_NOP, 0, (SDRAM_MODE_REG)CNULL, CNULL);
+    send_directcmd(SDRAM_CMD_NOP, 0, (SDRAM_MODE_REG)CNULL, CNULL);
 
     //16. Wait for tXPR(max(5nCK,tRFC(min)+10ns)) or set tXP to tXPR value before step 16.
     //    If the system set tXP to tXPR, then the system must set tXP to proper value before normal memory operation.
     DMC_Delay(100);
 
     //17. Issue an EMRS2 command using the DirectCmd register to program the operating parameters. Dynamic ODT should be disabled. A10 and A9 should be low.
-    SendDirectCommand(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR2,
+    send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR2,
         (0x2    <<   9) |       // Dynamic ODT(Rtt)[10:9]. 0:Disable, 1:RZQ/4(60ohm), 2:RZQ/2(120ohm), 3:Reserved
         (0x0    <<   8) |       // Reserved[8] SBZ
         (0x0    <<   7) |       // Self Refresh Temperature[7]. 0:Normal(0~85), 1:Extended(0~95)
@@ -2827,13 +2827,13 @@ CBOOL init_DDR3(U32 isResume)
         (0x0    <<   0));       // Partial Array Self-Refresh(Option)
 
     //18. Issue an EMRS3 command using the DirectCmd register to program the operating parameters.
-    SendDirectCommand(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR3,
+    send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR3,
         (0x0    <<   3) |       // Reserved SBZ[14:3].
         (0x0    <<   2) |       // MPR enable. 0:Normal DRAM operation, 1:Dataflow from MPR
         (0x0    <<   0));       // MPR Read function. 0:Predefined pattern. 1~3: Reserved
 
     //19. Issue an EMRS command using the DirectCmd register to enable the memory DLL.
-    SendDirectCommand(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR1,
+    send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR1,
         (0x0    <<  12) |       // Qoff[12]. 0:Enable, 1:Disable
         (0x0    <<  11) |       // TDQS[11]. 0:Disable(x4, x16), 1:Enable(x8 only)
         (0x0    <<  10) |       // Reserved SBZ[10]
@@ -2848,7 +2848,7 @@ CBOOL init_DDR3(U32 isResume)
         (0x0    <<   0));       // DLL[0]. 0:Enable, 1:Disable
 
     //20. Issue a MRS command using the DirectCmd register to reset the memory DLL.
-    SendDirectCommand(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR0,
+    send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR0,
         (0x0    <<  12) |       // Precharge PD. 0:DLL off(slow exit), 1:DLL on(fast exit)
         (0x6    <<   9) |       // Write Recovery(WR)[11:9]. 0:Reserved, 1:5, 2:6, 3:7, 4:8, 5:10, 6:12, 7:14 (### 12clk test)
         (0x1    <<   8) |       // DLL Reset[8]. 0:No, 1:Reset
@@ -2862,7 +2862,7 @@ CBOOL init_DDR3(U32 isResume)
                                                                                      // Precharge P/D_DLL Off, WR : 5, DLL Reset Off, CL : 11, Read Burst Type : Interleave, Burst Length : 8
 
     //21. Issues a MRS command using the DirectCmd register to program the operating parameters without resetting the memory DLL.
-    SendDirectCommand(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR0,
+    send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR0,
         (0x0    <<  12) |       // Precharge PD. 0:DLL off(slow exit), 1:DLL on(fast exit)
         (0x6    <<   9) |       // Write Recovery(WR)[11:9]. 0:Reserved, 1:5, 2:6, 3:7, 4:8, 5:10, 6:12, 7:14 (### 12clk test)
         (0x0    <<   8) |       // DLL Reset[8]. 0:No, 1:Reset
@@ -2876,7 +2876,7 @@ CBOOL init_DDR3(U32 isResume)
                                                                 // Precharge P/D_DLL Off, WR : 5, DLL Reset Off, CL : 11, Read Burst Type : Interleave, Burst Length : 8
 
     //22. Issues a ZQINIT commands using the DirectCmd register.
-    SendDirectCommand(SDRAM_CMD_ZQINIT, 0, (SDRAM_MODE_REG)CNULL, CNULL);
+    send_directcmd(SDRAM_CMD_ZQINIT, 0, (SDRAM_MODE_REG)CNULL, CNULL);
 
     //23. If there are more external memory chips, perform steps 17 ~ 24 procedures for other memory device.
     //24. If any leveling/training is needed, enable ctrl_atgate, p0_cmd_en, InitDeskewEn and byte_rdlvl_en. Disable ctrl_dll_on and set ctrl_force value. (Refer to PHY manual)
@@ -2917,7 +2917,7 @@ CBOOL init_DDR3(U32 isResume)
 
 
     //35. Issue PALL to all chips using direct command. This is an important step if write training has been done.
-    SendDirectCommand(SDRAM_CMD_PALL, 0, (SDRAM_MODE_REG)CNULL, CNULL);
+    send_directcmd(SDRAM_CMD_PALL, 0, (SDRAM_MODE_REG)CNULL, CNULL);
 
     //36. Set the MemControl and PhyControl0 register.
     WriteIO32( &pReg_Drex->MEMCONTROL,
