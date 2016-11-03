@@ -54,7 +54,7 @@
 #include "secondboot.h"
 #include "printf.h"
 #include "debug.h"
-
+#include "type.h"
 
 //------------------------------------------------------------------------------
 //  Set DEBUG Macro
