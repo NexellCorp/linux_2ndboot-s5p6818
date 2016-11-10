@@ -593,6 +593,8 @@ void hw_write_leveling_information(void)
  * must go through the following steps:
  *
  * Step 01. Send ALL Precharge command. (Suspend/Resume/Option)
+ *	    - Set "cmd_default[8:7] =2'b11" (LPDDR_CON4[8:7]) to enable
+ *	      "ODT[1:0]" signals during Write Leveling.
  * Step 02. Set the MR1 Register for Write Leveling Mode.
  * Step 03. Memory Controller should configure Memory in Write Level Mode.
  * Step 04. Configure PHY in Write Level mode
@@ -607,9 +609,10 @@ void hw_write_leveling_information(void)
  *	     - Disable "wrlvel_mode" in PHY_CON0[16]
  * Step 09. Disable ODT[1:0]
  *	     - Set "cmd_default[8:7]=2'b00' (LPDDR_CON4[8:7]).
- * Step 10. Update ALL SDLL Resync.
- * Step 11-0. Hardware Write Leveling Information
- * Step 11-1. It adjust the duration cycle of "ctrl_read" on a
+ * Step 10. Disable Memory in Write Leveling Mode
+ * Step 11. Update ALL SDLL Resync.
+ * Step 12-0. Hardware Write Leveling Information
+ * Step 12-1. It adjust the duration cycle of "ctrl_read" on a
  *	        clock cycle base. (subtract delay)
  *************************************************************/
 int ddr_hw_write_leveling(void)
@@ -667,7 +670,7 @@ int ddr_hw_write_leveling(void)
 #endif
 //	DMC_Delay(0x100);
 
-	mmio_set_32  (&pReg_Drex->WRLVL_CONFIG[0], (0x1 << 0) );          	// odt_on[0]="1" (turn on)
+	/* Step 03-02. Enable the ODT[1:0] (Signal High) */
 	mmio_set_32  (&pReg_DDRPHY->LP_DDR_CON[4], (0x3 << 7) );          	// cmd_default, ODT[8:7]=0x3
 
 	/* Step 04. Configure PHY in Write Level mode */
@@ -698,15 +701,10 @@ int ddr_hw_write_leveling(void)
 	}
 	g_WR_lvl = mmio_read_32(&pReg_DDRPHY->WR_LVL_CON[0]);
 
-#if 0
-	mmio_set_32  (&pReg_DDRPHY->WR_LVL_CON[3], (0x1 << 0));          	// wrlvl_resync[0]=0x1
-	mmio_clear_32(&pReg_DDRPHY->WR_LVL_CON[3], (0x1 << 0));          	// wrlvl_resync[0]=0x0
-#endif
-
 	/* Step 09. Disable the ODT[1:0] */
-	mmio_clear_32(&pReg_Drex->WRLVL_CONFIG[0], (0x1 << 0));          	// odt_on[0]="0" (turn off)
 	mmio_clear_32(&pReg_DDRPHY->LP_DDR_CON[4], (0x3 << 7));          	// cmd_default, ODT[8:7]=0x0
 
+	/* Step 10. Disable Memory in Write Leveling Mode */
 	MR1.MR1.WL      = 0;
 	send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR1, MR1.Reg);
 #if (CFG_NSIH_EN == 0)
@@ -719,21 +717,19 @@ int ddr_hw_write_leveling(void)
 #endif
 	DMC_Delay(0x100);
 
-	/* Step 10. Update ALL SDLL Resync. */
+	/* Step 11. Update ALL SDLL Resync. */
 	mmio_set_32  (&pReg_DDRPHY->OFFSETD_CON, (0x1  << 24));		// ctrl_resync[24]=0x1 (HIGH)
 	mmio_clear_32(&pReg_DDRPHY->OFFSETD_CON, (0x1  << 24));		// ctrl_resync[24]=0x0 (LOW)
 
-	mmio_set_32  (&pReg_Drex->PHYCONTROL,    (0x1  << 3));			// Force DLL Resyncronization
-	mmio_clear_32(&pReg_Drex->PHYCONTROL,    (0x1  << 3));			// Force DLL Resyncronization
-
-	/* Step 11-0. Hardware Write Leveling Information */
+	/* Step 12-0. Hardware Write Leveling Information */
 	mmio_set_32(&pReg_DDRPHY->PHY_CON[3], (0x1 << 0));	    		// reg_mode[7:0]=0x1
 #if (MEM_CALIBRATION_INFO == 1)
 	hw_write_leveling_information();
 #endif
-	mmio_clear_32(&pReg_DDRPHY->PHY_CON[3],  (0xFF << 0));			// reg_mode[7:0]=0x0
+	/* Step 12-0. Leveling Information Register Mode Off (Not Must) */
+//	mmio_clear_32(&pReg_DDRPHY->PHY_CON[3],  (0xFF << 0));			// reg_mode[7:0]=0x0
 
-	/* Step 11-1. It adjust the duration cycle of "ctrl_read" on a clock cycle base. (subtract delay) */
+	/* Step 12-1. It adjust the duration cycle of "ctrl_read" on a clock cycle base. (subtract delay) */
 	mmio_set_32  (&pReg_DDRPHY->RODT_CON,    (0x1  << 28));		// ctrl_readduradj [31:28]
 
 	MEMMSG("\r\n########## Write Leveling - End ##########\r\n");
