@@ -32,7 +32,7 @@ extern void     DMC_Delay(int milisecond);
 //extern void     enableICache(CBOOL enable);
 
 extern void     enterSelfRefresh(void);
-extern void     exitSelfRefresh(void);
+extern void     exit_self_refresh(void);
 extern void     set_bus_config(void);
 extern void     set_drex_qos(void);
 
@@ -44,7 +44,7 @@ extern CBOOL    iNANDBOOTEC(struct NX_SecondBootInfo * const pTBI);
 extern CBOOL    iSDXCFSBOOT(struct NX_SecondBootInfo * const pTBI);
 extern void     initClock(void);
 #ifdef MEM_TYPE_DDR3
-extern CBOOL    init_DDR3(U32);
+extern CBOOL    ddr3_initialize(U32);
 #endif
 #ifdef MEM_TYPE_LPDDR23
 extern CBOOL    init_LPDDR3(U32);
@@ -264,11 +264,11 @@ void BootMain( U32 CPUID )
     printf("\r\nDDR3 POR Init Start %d\r\n", isResume);
 #ifdef MEM_TYPE_DDR3
 #if 0
-    if (init_DDR3(isResume) == CFALSE)
-        init_DDR3(isResume);
+    if (ddr3_initialize(isResume) < 0)
+        ddr3_initialize(isResume);
 #else
-    if (init_DDR3(0) == CFALSE)
-        init_DDR3(0);
+    if (ddr3_initialize(0) < 0)
+        ddr3_initialize(0);
 #endif
 #endif
 #ifdef MEM_TYPE_LPDDR23
@@ -278,7 +278,7 @@ void BootMain( U32 CPUID )
 
     if (isResume)
     {
-        exitSelfRefresh();
+        exit_self_refresh();
     }
 
     printf( "DDR3 Init Done!\r\n" );
