@@ -35,13 +35,9 @@
 
 /* Hardware Memory Calibration */
 #define DDR_WRITE_LEVELING_EN 		(1)	// for fly-by
-#define DDR_CA_CALIB_EN 		(0)	// for LPDDR3
 #define DDR_GATE_LEVELING_EN 		(1)	// for DDR3, great then 800MHz
 #define DDR_READ_DQ_CALIB_EN 		(1)
 #define DDR_WRITE_DQ_CALIB_EN 		(1)
-
-/* Software Memory Calibration */
-#define DDR_SW_WRITE_LEVELING_EN	(1)
 
 #define DDR_RESET_GATE_LVL 		(1)
 #define DDR_RESET_READ_DQ 		(1)
@@ -49,7 +45,7 @@
 
 #define DDR_MEMINFO_SHOWLOCK		(0)	// DDR Memory Show Lock Value
 
-#define MEM_CALIBRATION_INFO		(1)
+#define MEM_CALIBRATION_INFO		(0)
 #define MEM_CALIBRATION_BITINFO		(0)
 #define DM_CALIBRATION_INFO		(0)
 
@@ -82,6 +78,61 @@ unsigned int g_GT_code;
 unsigned int g_RD_vwmc;
 unsigned int g_WR_vwmc;
 
+struct dram_device_info {
+	unsigned int bank_num;
+	unsigned int row_num;
+	unsigned int column_num;
+
+	unsigned int column_size;
+	unsigned int row_size;
+	unsigned long bank_size;
+	unsigned long chip_size;
+	unsigned long sdram_size;
+};
+
+struct dram_device_info g_ddr3_info;
+
+static int _pow(int num, int count)
+{
+	int ret = 1;
+
+	while (count--)
+		ret *= num;
+
+	return ret;
+}
+
+static void get_dram_information(struct dram_device_info *me)
+{
+	/* Nexell Step XX. Memory Address (for Write Training (DRAM)) */
+	me->bank_num	= 3;
+	me->row_num	= (pSBI->DII.ChipRow + 12);
+	me->column_num	= (pSBI->DII.ChipCol +  7);
+
+	me->column_size	= (_pow(2, me->column_num) * pSBI->DII.BusWidth) ;
+	me->row_size	= _pow(2, me->row_num);
+	me->bank_size	= (me->row_size * me->column_size);
+	me->chip_size	= (me->bank_size * _pow(2, me->bank_num));
+	me->sdram_size	= (me->chip_size * 32);
+
+#if 0
+	MEMMSG("\r\n############## [SDRAM] Memory Specification ###############\r\n");
+	MEMMSG("[Bit] Bank Address   : %d \r\n", me->bank_num);
+	MEMMSG("[Bit] Column Address : %d \r\n", me->column_num);
+	MEMMSG("[Bit] Row Address    : %d \r\n", me->row_num);
+	MEMMSG("[Bit] Data Line      : %d \r\n", pSBI->DII.BusWidth);
+	MEMMSG("[Bit] Column    Size : %d \r\n", me->column_size);
+	MEMMSG("[Bit] Row(Page) Size : %d \r\n", me->row_size);
+	MEMMSG("[Bit] Bank      Size : %d \r\n", me->bank_size);
+#if 0
+	MEMMSG("[Bit] Chip      Size : %f \r\n", me->chip_size);
+	MEMMSG("[TOTAL] SDRAM   Size : %f \r\n", me->chip_size);
+#endif
+	MEMMSG("\r\n############################################################\r\n");
+#endif
+
+}
+
 #if DDR_MEMINFO_SHOWLOCK
 struct phy_lock_info {
 	unsigned int val;
@@ -107,7 +158,7 @@ void show_lock_value(void)
 	}
 
 	for (i = 0; i < 1000000; i++) {
-		temp = ReadIO32( &pReg_DDRPHY->MDLL_CON[1] );
+		temp = mmio_read_32( &pReg_DDRPHY->MDLL_CON[1] );
 		status = temp & 0x7;
 		lock_val = (temp >> 8) & 0x1FF;         // Read Lock value
 
@@ -165,7 +216,7 @@ void DUMP_PHY_REG(void)
 
     for (i = 0; i < (0x3AC>>2); i++)
     {
-        temp = ReadIO32( pAddr + i );
+        temp = mmio_read_32( pAddr + i );
 
         if ( (i & 3) == 0 ) {
             printf("\r\n0x%08X :", (i<<2));
@@ -202,7 +253,7 @@ void enter_self_refresh(void)
 		nChips = 0x1;
 #endif
 
-	while (ReadIO32(&pReg_Drex->CHIPSTATUS) & 0xF)
+	while (mmio_read_32(&pReg_Drex->CHIPSTATUS) & 0xF)
 		nop();
 
 	/* Step 01. Send PALL Command */
@@ -288,12 +339,12 @@ void enter_self_refresh(void)
 
 	/*  Step 05. Check the Busy State */
 	do {
-		nTemp = (ReadIO32(&pReg_Drex->CHIPSTATUS) & nChips);
+		nTemp = (mmio_read_32(&pReg_Drex->CHIPSTATUS) & nChips);
 	} while (nTemp);
 
 	/* Step 06. Check the Sel-Refresh State (FSM) */
 	do {
-		nTemp = ((ReadIO32(&pReg_Drex->CHIPSTATUS) >> 8) & nChips);
+		nTemp = ((mmio_read_32(&pReg_Drex->CHIPSTATUS) >> 8) & nChips);
 	} while (nTemp != nChips);
 
 	/* Step 05. Disable the Auto refresh Counter */
@@ -394,7 +445,7 @@ void exit_self_refresh(void)
 
 	/* Step 07. Check the Self-Refresh State (FSM) */
 #if 0
-	while(ReadIO32(&pReg_Drex->CHIPSTATUS) & (0xF << 8)) 
+	while(mmio_read_32(&pReg_Drex->CHIPSTATUS) & (0xF << 8))
 		nop();
 #endif
 }
@@ -865,7 +916,7 @@ rd_err_ret:
 
 	return ret;
 }
-#endif // #if (DDR_READ_DQ_CALIB_EN == 0)
+#endif // #if (DDR_READ_DQ_CALIB_EN == 1)
 
 #if ((DDR_WRITE_LEVELING_EN == 1) && (MEM_CALIBRATION_INFO == 1))
 void write_latency_information(void)
@@ -883,12 +934,11 @@ void write_latency_information(void)
 		for (slice = 0; slice < max_slice; slice++)
 			MEMMSG("[SLICE%02d] Write Latency Cycle : %d\r\n",
 				slice, latency_plus >> (slice*3) & 0x7);
-			MEMMSG("0: Half Cycle, 1: One Cycle, 2: Two Cycle \r\n");
+		MEMMSG("0: Half Cycle, 1: One Cycle, 2: Two Cycle \r\n");
 	}
 
 	MEMMSG("Write Latency Calibration %s(ret=0x%08X)!! \r\n",
 			(status == 0xF) ? "Success" : "Failed", status);
-
 }
 #endif // #if ((DDR_WRITE_LEVELING_EN == 1) && (MEM_CALIBRATION_INFO == 1))
 
@@ -995,7 +1045,7 @@ int ddr_write_latency_calibration(void)
 
 	return ret;
 }
-#endif
+#endif // #if (DDR_WRITE_LEVELING_EN == 1)
 
 #if ((DDR_WRITE_DQ_CALIB_EN == 1) && (MEM_CALIBRATION_INFO == 1))
 void write_dq_calibration_information(void)
@@ -1230,29 +1280,6 @@ wr_err_ret:
 #endif // #if (DDR_WRITE_DQ_CALIB_EN == 0)
 
 #endif // #if (SKIP_LEVELING_TRAINING == 0)
-
-static int get_vwmc_offset(unsigned int code, unsigned int lock_div4)
-{
-	unsigned int i, ret_val;
-	unsigned char vwmc[4];
-	int offset[4];
-
-	for (i = 0; i < 4; i++)
-		vwmc[i] = ((code >> (8 * i)) & 0xFF);
-
-	for (i = 0; i < 4; i++) {
-		offset[i] = (int)(vwmc[i] - lock_div4);
-		if (offset[i] < 0) {
-			offset[i] *= -1;
-			offset[i] |= 0x80;
-		}
-	}
-
-	ret_val = (((unsigned char)offset[3] << 24) | ((unsigned char)offset[2] << 16) |
-		   ((unsigned char)offset[1] << 8) | (unsigned char)offset[0]);
-
-	return ret_val;
-}
 
 static int resetgen_sequence(void)
 {
@@ -2119,5 +2146,4 @@ int ddr3_initialize(unsigned int is_resume)
 	MEMMSG("\r\n\r\n");
 
 	return CTRUE;
-}
 }
