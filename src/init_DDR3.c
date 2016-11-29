@@ -1003,7 +1003,7 @@ void write_dq_calibration_information(void)
 	unsigned int dq_fail_status, dq_calibration;
 	unsigned int vwml[4], vwmr[4];
 	unsigned int vwmc[4];
-	//	unsigned int Deskew[4];
+//	unsigned int Deskew[4];
 #if (MEM_CALIBRATION_BITINFO == 1)
 	unsigned char bit_vwml[32], bit_vwmr[32];
 	unsigned char bit_vwmc[32], bit_deskew[32];
@@ -1012,7 +1012,7 @@ void write_dq_calibration_information(void)
 
 #if (DM_CALIBRATION_INFO == 1)
 	unsigned int DM_VWML[4], DM_VWMR[4], DM_VWMC[4];
-#endif	
+#endif
 	unsigned int max_slice = 4, slice;
 
 	/* Check whether each slice by failure. */
@@ -1071,38 +1071,38 @@ void write_dq_calibration_information(void)
 #endif
 	}
 
-	printf("\r\n### Write DQ Calibration - Information ####\r\n");
+	MEMMSG("\r\n### Write DQ Calibration - Information ####\r\n");
 
-	printf("Write DQ Calibration %s!! \r\n",
+	MEMMSG("Write DQ Calibration %s!! \r\n",
 			(dq_fail_status == 0) ? "Success" : "Failed" );
 	if (dq_fail_status == 0) {
 		unsigned int range;
 		for(slice = 0; slice < max_slice; slice++) {
 			range = vwmr[slice] - vwml[slice];
-			printf("SLICE%02d: %d ~ %d ~ %d (range: %d) \r\n",
+			MEMMSG("SLICE%02d: %d ~ %d ~ %d (range: %d) \r\n",
 					slice, vwml[slice], vwmc[slice], vwmr[slice], range);
 		}
-#if (MEM_CALIBRATION_BITINFO == 1)	
-		printf("     \tLeft\tCenter\tRight\tDeSknew \r\n");
+#if (MEM_CALIBRATION_BITINFO == 1)
+		MEMMSG("     \tLeft\tCenter\tRight\tDeSknew \r\n");
 		for(slice = 0; slice < max_slice; slice++) {
 			for(bit_line = 0; bit_line < max_bit_line; bit_line++) {
 				unsigned int line_num = (slice*max_bit_line) + bit_line;
-				printf("DQ%02d: \t%d\t\t%d\t%d\t%d\r\n",
-						line_num, bit_vwml[line_num], bit_vwmc[line_num], 
+				MEMMSG("DQ%02d: \t%d\t\t%d\t%d\t%d\r\n",
+						line_num, bit_vwml[line_num], bit_vwmc[line_num],
 						bit_vwmr[line_num], bit_deskew[line_num]);
 			}
 		}
 #endif
 
 #if (DM_CALIBRATION_INFO == 1)
-		printf("[DM] \tLeft\tCenter\tRight\tDeSknew \r\n");
+		MEMMSG("[DM] \tLeft\tCenter\tRight\tDeSknew \r\n");
 		for(slice = 0; slice < max_slice; slice++) {
-			printf("SLICE%02d: %d ~ %d ~ %d (range: %d) \r\n",
+			MEMMSG("SLICE%02d: %d ~ %d ~ %d (range: %d) \r\n",
 					slice, (DM_VWML[slice]>>(8*slice))&0xFF,
 					(DM_VWMC[slice]>>(8*slice))&0xFF, (DM_VWMR[slice]>>(8*slice))&0xFF);
 		}
 #endif
-		printf("###########################################\r\n");
+		MEMMSG("###########################################\r\n");
 	} // if (dq_fail_status == 0)
 }
 #endif // #if ((DDR_WRITE_DQ_CALIB_EN == 1) && (MEM_CALIBRATION_INFO == 1))
@@ -1126,14 +1126,14 @@ void write_dq_calibration_information(void)
  *	     -> Set "wr_cal_start=1" in PHY_CON2[27] to do Write DQ Calibration
  * Step 07. Waiting for Response
  *	     -> Wait until "rd_wr_cal_resp(=PHY_CON3[26]" is set.
- * Step 08. End the Write DQ Calibration 
+ * Step 08. End the Write DQ Calibration
  *	     -> Set "wr_cal_start=0" in PHY_CON2[27] to do Write DQ Calibration
  	         after wrwr_cal_resp(=PHY_CON3[26]" is set.
  * Step 09. Check to Success or Failed. (timeout & status)
  *************************************************************/
 int ddr_write_dq_calibration(void)
 {
-	volatile int row = 0, column = 0;
+	volatile int bank = 0, row = 0, column = 0;
 	volatile int cal_count = 0;
 	volatile int status, response;
 	int ret = 0;
@@ -1144,7 +1144,7 @@ int ddr_write_dq_calibration(void)
 	mmio_clear_32(&pReg_DDRPHY->PHY_CON[0], (0x1 << 13));          // byte_rdlvl_en[13]=0, for Deskewing
 #endif
 
-#if 1	/* Step 01. Set Write Latency(=ctrl_wrlat) before Write Latency Calibration.*/
+#if 0	/* Step 01. Set Write Latency(=ctrl_wrlat) before Write Latency Calibration.*/
 	int DDR_AL = 0, DDR_WL, DDR_RL;
 #if (CFG_NSIH_EN == 0)
 	if (MR1_nAL > 0)
@@ -1166,8 +1166,9 @@ int ddr_write_dq_calibration(void)
 	/* Step 02. Set issue Active command. */
 	mmio_write_32(&pReg_Drex->WRTRA_CONFIG,
 			(row  << 16) |						// [31:16] row_addr
-			(0x0  <<  1) |						// [ 3: 1] bank_addr
+			(bank <<  1) |						// [ 3: 1] bank_addr
 			(0x1  <<  0));						// [    0] write_training_en
+	mmio_clear_32(&pReg_Drex->WRTRA_CONFIG, (0x1 <<  0));			// [   0]write_training_en[0] = 0
 
 	/* Step 03. Set the colum address */
 	mmio_set_32  (&pReg_DDRPHY->LP_DDR_CON[2],
@@ -1178,7 +1179,7 @@ int ddr_write_dq_calibration(void)
 	/* Step 04-0. Set "PHY_CON1[15:0]=0x0100" and "byte_rdlvl_en=1(=PHY_CON0[13]). */
 	mmio_set_32(&pReg_DDRPHY->PHY_CON[1], 0x0100);
 	mmio_set_32  (&pReg_DDRPHY->PHY_CON[0], (1 << 13));
-#else	
+#else
 	/* Step 04-1. Set "PHY_CON1[15:0]=0xFF00" and "byte_rdlvl_en=0(=PHY_CON0[13]). */
 	mmio_set_32(&pReg_DDRPHY->PHY_CON[1], 0xFF00);
 	mmio_clear_32(&pReg_DDRPHY->PHY_CON[0], (1 << 13));
@@ -1196,16 +1197,10 @@ int ddr_write_dq_calibration(void)
 			break;
 		DMC_Delay(0x100);
 	}
-#if 0	//unknown
-	/* Step 08.  Enable Write Calibration (?) */
-	mmio_set_32(&pReg_DDRPHY->PHY_CON[3], (1 << 26));
-#endif
+
 	/* Step 09. End the Write DQ Calibration */
 	mmio_clear_32(&pReg_DDRPHY->PHY_CON[2], (0x1 << 27));			// wr_cal_start[27] = 0
-#if 0	// unknown
-	/* Step XX.  Disable Write Training */
-	mmio_clear_32(&pReg_Drex->WRTRA_CONFIG, (0x1 <<  0));			// write_training_en[0] = 0
-#endif
+
 	/* Step XX-0. check to success or failed (timeout) */
 	if (cal_count == 100) {							// Failure Case
 		MEMMSG("WR DQ CAL Status Checking error\r\n");
@@ -1216,11 +1211,10 @@ int ddr_write_dq_calibration(void)
 	/* Step XX-1. check to success or failed (status) */
 	status = mmio_read_32(&pReg_DDRPHY->CAL_FAIL_STAT[0]);			//dq_fail_status[31:0] : Slice 0 ~Slice3
 	if (status != 0) {
-		MEMMSG("Write DQ Calibration Status: 0x%08X \r\n",
-			status);
+		MEMMSG("Write DQ Calibration Status: 0x%08X \r\n", status);
 		ret = -1;
 		goto wr_err_ret;
-	}		
+	}
 	g_WR_vwmc = mmio_read_32(&pReg_DDRPHY->CAL_WR_VWMC[0]);
 
 wr_err_ret:
