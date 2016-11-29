@@ -684,7 +684,7 @@ void read_dq_calibration_information(void)
 
 #if (DM_CALIBRATION_INFO == 1)
 	unsigned int DM_VWML[4], DM_VWMR[4], DM_VWMC[4];
-#endif	
+#endif
 	unsigned int max_slice = 4, slice;
 
 	/* Check whether each slice by failure. */
@@ -722,7 +722,7 @@ void read_dq_calibration_information(void)
 				bit_deskew[bit_line+4] = (mmio_read_32(&pReg_DDRPHY->RD_DESKEW_CON[slice*3+1]) >> (8*0)) & 0xFF;
 				bit_vwmc[bit_line+4] = (mmio_read_32(&pReg_DDRPHY->VWMC_STAT[slice*3+1]) >> (8*1)) & 0xFF;
 				bit_vwml[bit_line+4] = (mmio_read_32(&pReg_DDRPHY->VWML_STAT[slice*3+1]) >> (8*2)) & 0xFF;
-				bit_vwmr[bit_line+4] = (mmio_read_32(&pReg_DDRPHY->VWMR_STAT[slice*3+1]) >> (8*3)) & 0xFF;			
+				bit_vwmr[bit_line+4] = (mmio_read_32(&pReg_DDRPHY->VWMR_STAT[slice*3+1]) >> (8*3)) & 0xFF;
 			}
 		}
 #endif
@@ -743,38 +743,38 @@ void read_dq_calibration_information(void)
 #endif
 	}
 
-	printf("\r\n#### Read DQ Calibration - Information ####\r\n");
+	MEMMSG("\r\n#### Read DQ Calibration - Information ####\r\n");
 
-	printf("Read DQ Calibration %s!! \r\n",
+	MEMMSG("Read DQ Calibration %s!! \r\n",
 			(dq_fail_status == 0) ? "Success" : "Failed" );
 	if (dq_fail_status == 0) {
 		unsigned int range;
 		for(slice = 0; slice < max_slice; slice++) {
 			range = vwmr[slice] - vwml[slice];
-			printf("SLICE%02d: %02d ~ %02d ~ %02d (range: %d) \r\n",
+			MEMMSG("SLICE%02d: %02d ~ %02d ~ %02d (range: %d) \r\n",
 					slice, vwml[slice], vwmc[slice], vwmr[slice], range);
 		}
 #if (MEM_CALIBRATION_BITINFO == 1)
-		printf("     \tLeft\tCenter\tRight\tDeSknew \r\n");
+		MEMMSG("     \tLeft\tCenter\tRight\tDeSknew \r\n");
 		for(slice = 0; slice < max_slice; slice++) {
 			for(bit_line = 0; bit_line < max_bit_line; bit_line++) {
 				unsigned int line_num = (slice*max_bit_line) + bit_line;
-				printf("DQ%02d: \t%02d\t\t%02d\t%02d\t%02d\r\n",
-						line_num, bit_vwml[line_num], bit_vwmc[line_num], 
+				MEMMSG("DQ%02d: \t%02d\t\t%02d\t%02d\t%02d\r\n",
+						line_num, bit_vwml[line_num], bit_vwmc[line_num],
 						bit_vwmr[line_num], bit_deskew[line_num]);
 			}
 		}
 #endif
 
 #if (DM_CALIBRATION_INFO == 1)
-		printf("[DM] \tLeft\tCenter\tRight\tDeSknew \r\n");
+		MEMMSG("[DM] \tLeft\tCenter\tRight\tDeSknew \r\n");
 		for(slice = 0; slice < max_slice; slice++) {
-			printf("SLICE%02d: %d ~ %d ~ %d (range: %d) \r\n",
+			MEMMSG("SLICE%02d: %d ~ %d ~ %d (range: %d) \r\n",
 					slice, (DM_VWML[slice]>>(8*slice))&0xFF,
 					(DM_VWMC[slice]>>(8*slice))&0xFF, (DM_VWMR[slice]>>(8*slice))&0xFF);
 		}
 #endif
-		printf("###########################################\r\n");
+		MEMMSG("###########################################\r\n");
 	} // if (dq_fail_status == 0)
 }
 #endif
@@ -794,7 +794,7 @@ void read_dq_calibration_information(void)
  * Step 05. Wait for Response.
  *	     -> Wait until "rd_wr_cal_resp"(=PHY_CON3[26]) is set.
  * Step 06. End the Read DQ Calibration
- *	     -> Set "rd_cal_start=0"(=PHY_CON3[19]) after 
+ *	     -> Set "rd_cal_start=0"(=PHY_CON3[19]) after
  	          "rd_wr_cal_resp"(=PHY_CON3[26]) is enabled.
  * Step 07. Disable the Memory in MPR Mode (MR3:A2=0)
  *************************************************************/
@@ -814,27 +814,11 @@ int ddr_read_dq_calibration(void)
 
 	/* Step 01. Send Precharge ALL Command */
 	send_directcmd(SDRAM_CMD_PALL, 0, (SDRAM_MODE_REG)CNULL, CNULL);
-#if (CFG_NSIH_EN == 0)
-#if (_DDR_CS_NUM > 1)
-	send_directcmd(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
-#endif
-#else
-	if (pSBI->DII.ChipNum > 1)
-		send_directcmd(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
-#endif
 
 	/* Step 02. Set the Memory in MPR Mode (MR3:A2=1) */
 	MR.Reg = 0;
 	MR.MR3.MPR = 1;
 	send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR3, MR.Reg);
-#if (CFG_NSIH_EN == 0)
-#if (_DDR_CS_NUM > 1)
-	send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR.Reg);
-#endif
-#else
-	if (pSBI->DII.ChipNum > 1)
-		send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR.Reg);
-#endif
 
 	/* Step 03. Set Read Leveling Mode. */
 	mmio_set_32  (&pReg_DDRPHY->PHY_CON[2], (0x1 << 25));			// rd_cal_mode[25]=1
@@ -850,7 +834,7 @@ int ddr_read_dq_calibration(void)
 		DMC_Delay(100);
 	}
 
-	/* Step 06. End the Read DQ Calibration */	
+	/* Step 06. End the Read DQ Calibration */
 	mmio_clear_32(&pReg_DDRPHY->PHY_CON[3], (0x1 << 19));			// rd_cal_start[19]=0
 
 	/* Step XX-0. check to success or failed (timeout) */
@@ -863,8 +847,7 @@ int ddr_read_dq_calibration(void)
 	/* Step XX-1. check to success or failed (status) */
 	status = mmio_read_32(&pReg_DDRPHY->CAL_FAIL_STAT[0]);			//dq_fail_status[31:0] : Slice 0 ~Slice3
 	if (status != 0) {
-		MEMMSG("Write DQ Calibration Status: 0x%08X \r\n",
-			status);
+		MEMMSG("Write DQ Calibration Status: 0x%08X \r\n", status);
 		ret = -1;
 		goto rd_err_ret;
 	}
@@ -873,20 +856,11 @@ int ddr_read_dq_calibration(void)
 rd_err_ret:
 	/* Step 07. Disable the Memory in MPR Mode (MR3:A2=0) */
 	MR.Reg = 0;
-
 	send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR3, MR.Reg);
-#if (CFG_NSIH_EN == 0)
-#if (_DDR_CS_NUM > 1)
-	send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR.Reg);
-#endif
-#else
-	if (pSBI->DII.ChipNum > 1)
-		send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR.Reg);
-#endif
 
 #if (MEM_CALIBRATION_INFO == 1)
 	read_dq_calibration_information();
-#endif	
+#endif
 	MEMMSG("\r\n########## Read DQ Calibration - End ##########\r\n");
 
 	return ret;
@@ -935,12 +909,12 @@ void write_latency_information(void)
  * Step 06. Wait until the for Write Latency Calibtion complete.
  *	     - Wait until "wl_cal_resp" (=PHY_CON3[27])
  * Step 07. Check the success or not.
- * Step 08. Check the success or not. 
+ * Step 08. Check the success or not.
  *	     -> Read Status (=CAL_WL_STAT)
  *************************************************************/
 int ddr_write_latency_calibration(void)
 {
-	volatile int row = 0, column = 0;
+	volatile int bank = 0, row = 0, column = 0;
 	volatile int cal_count;
 	volatile int response, done_status = 0;
 	int ret = 0;
@@ -951,7 +925,7 @@ int ddr_write_latency_calibration(void)
 	mmio_set_32  (&pReg_DDRPHY->PHY_CON[0], (0x1 << 13));			// byte_rdlvl_en[13]=1
 #endif
 
-#if 1	/* Step 01. Set Write Latency(=ctrl_wrlat) before Write Latency Calibration.*/
+#if 0	/* Step 01. Set Write Latency(=ctrl_wrlat) before Write Latency Calibration.*/
 	int DDR_AL = 0, DDR_WL, DDR_RL;
 #if (CFG_NSIH_EN == 0)
 	if (MR1_nAL > 0)
@@ -975,10 +949,10 @@ int ddr_write_latency_calibration(void)
 			(row    << 16) |					// [31:16] row_addr
 			(0x0    <<  1) |					// [ 3: 1] bank_addr
 			(0x1    <<  0));					// [    0] write_training_en
+	mmio_clear_32(&pReg_Drex->WRTRA_CONFIG, (0x1 <<  0));			// [   0]write_training_en[0] = 0
 
 	/* Step 03. Set the colum address*/
-	mmio_set_32  (&pReg_DDRPHY->LP_DDR_CON[2],
-				(column <<  1));				// [15: 1] ddr3_address
+	mmio_set_32  (&pReg_DDRPHY->LP_DDR_CON[2], (column <<  1));		// [15: 1] ddr3_address
 
 	/* Step 04. Set the Write Latency Calibration Mode & Start */
 	mmio_set_32  (&pReg_DDRPHY->PHY_CON[3], (0x1 << 20));			// wl_cal_mode[20] = 1
@@ -994,10 +968,7 @@ int ddr_write_latency_calibration(void)
 
 	/* Step 06. After the completion Write Latency Calibration and clear. */
 	mmio_clear_32(&pReg_DDRPHY->PHY_CON[3], (0x1 << 21));			// wl_cal_start[21] = 0
-#if 0
-	/* Step XX. Before starting Write Latency, switch to Active state. (optional)  */
-	mmio_clear_32(&pReg_Drex->WRTRA_CONFIG, (0x1 <<  0));			// write_training_en[0] = 0
-#endif
+
 	/* Step 07. Check the success or not. */
 	if (cal_count == 100) {                                                 // Failure Case
 		MEMMSG("WR Latency CAL Status Checking error\r\n");
@@ -1009,7 +980,7 @@ int ddr_write_latency_calibration(void)
 
 #if (MEM_CALIBRATION_INFO == 1)
 	write_latency_information();
-#endif	
+#endif
 	mmio_clear_32(&pReg_DDRPHY->PHY_CON[3], (0xFF << 0));			// reg_mode[7:0]=0x0
 
 	/* Step 08. Check the success or not. (=CAL_WL_STAT) */
