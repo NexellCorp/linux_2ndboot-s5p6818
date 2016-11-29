@@ -593,16 +593,16 @@ void gate_leveling_information(void)
  * Step 02. Set the Memory in MPR Mode (MR3:A2=1)
  * Step 03. Set the Gate Leveling Mode.
  *	    -> Enable "gate_cal_mode" in PHY_CON2[24]
- *	    -> Enable "ctrl_shgate" in PHY_CON0[8] 
+ *	    -> Enable "ctrl_shgate" in PHY_CON0[8]
  *	    -> Set "ctrl_gateduradj[3:0] (=PHY_CON1[23:20]) (DDR3: 4'b0000")
  * Step 04. Waiting for Response.
- *	    -> Wait until "rd_wr_cal_resp"(=PHYT_CON3[26])     
+ *	    -> Wait until "rd_wr_cal_resp"(=PHYT_CON3[26])
  * Step 05.  End the Gate Leveling
  *	     -> Disable "gate_lvl_start(=PHY_CON3[18]"
  *	         after "rd_wr_cal_resp"(=PHY_CON3)is disabled.
  * Step 06. Disable DQS Pull Down Mode.
  *	     -> Set the "ctrl_pulld_dqs[8:0] = 0"
- * Step 07. Step 07. Disable the Memory in MPR Mode (MR3:A2=0)  
+ * Step 07. Step 07. Disable the Memory in MPR Mode (MR3:A2=0)
  *************************************************************/
 int ddr_gate_leveling(void)
 {
@@ -616,34 +616,18 @@ int ddr_gate_leveling(void)
 
 	/* Step 01. Send ALL Precharge command. */
 	send_directcmd(SDRAM_CMD_PALL, 0, (SDRAM_MODE_REG)CNULL, CNULL);
-#if (CFG_NSIH_EN == 0)
-#if (_DDR_CS_NUM > 1)
-	send_directcmd(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
-#endif
-#else
-	if (pSBI->DII.ChipNum > 1)
-		send_directcmd(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL,
-				  CNULL);
-#endif
+
 	/* Step 02. Set the Memory in MPR Mode (MR3:A2=1) */
 	MR.Reg = 0;
 	MR.MR3.MPR = 1;
 	send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR3, MR.Reg);
-#if (CFG_NSIH_EN == 0)
-#if (_DDR_CS_NUM > 1)
-	send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR.Reg);
-#endif
-#else
-	if (pSBI->DII.ChipNum > 1)
-		send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR.Reg);
-#endif
 
 	/* Step 03. Set the Gate Leveling Mode. */
 	/* Step 03-1. Enable "gate_cal_mode" in PHY_CON2[24] */
 	mmio_set_32  (&pReg_DDRPHY->PHY_CON[2], (0x1 << 24));			// gate_cal_mode[24] = 1
 	/* Step 03-2. Enable "ctrl_shgate" in PHY_CON0[8] */
 	mmio_set_32  (&pReg_DDRPHY->PHY_CON[0], (0x5 <<  6));			// ctrl_shgate[8]=1, ctrl_atgate[6]=1
-	/* Step 03-2. Set "ctrl_gateduradj[3:0] (=PHY_CON1[23:20]) (DDR3: 4'b0000") */
+	/* Step 03-3. Set "ctrl_gateduradj[3:0] (=PHY_CON1[23:20]) (DDR3: 4'b0000") */
 	mmio_clear_32(&pReg_DDRPHY->PHY_CON[1], (0xF << 20));			// ctrl_gateduradj[23:20] = DDR3: 0x0, LPDDR3: 0xB, LPDDR2: 0x9
 
 	/* Step 04. Wait for Response */
@@ -675,14 +659,7 @@ gate_err_ret:
 	/* Step 07. Disable the Memory in MPR Mode (MR3:A2=0) */
 	MR.Reg = 0;
 	send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR3, MR.Reg);
-#if (CFG_NSIH_EN == 0)
-#if (_DDR_CS_NUM > 1)
-	send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR.Reg);
-#endif
-#else
-	if (pSBI->DII.ChipNum > 1)
-		send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR.Reg);
-#endif
+
 	MEMMSG("\r\n########## Gate Leveling - End ##########\r\n");
 
 	if (g_GT_code == 0x08080808)
