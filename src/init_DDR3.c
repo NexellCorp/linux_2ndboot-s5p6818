@@ -409,7 +409,7 @@ void hw_write_leveling_information(void)
 
 	int max_slice = 4, slice;
 
-	wl_calibration = ReadIO32(&pReg_DDRPHY->WR_LVL_CON[0]);
+	wl_calibration = mmio_read_32(&pReg_DDRPHY->WR_LVL_CON[0]);
 	MEMMSG("SLICE %03d %03d %03d %03d\r\n     ", 0, 1, 2, 3);
 	for (slice = 0; slice < max_slice; slice++) {
 		wl_dll_value[slice] = (wl_calibration >> (slice * 8)) & 0xFF;
@@ -426,7 +426,7 @@ void hw_write_leveling_information(void)
  * must go through the following steps:
  *
  * Step 01. Send ALL Precharge command. (Suspend/Resume/Option)
- *	    - Set "cmd_default[8:7] =2'b11" (LPDDR_CON4[8:7]) to enable 
+ *	    - Set "cmd_default[8:7] =2'b11" (LPDDR_CON4[8:7]) to enable
  *	      "ODT[1:0]" signals during Write Leveling.
  * Step 02. Set the MR1 Register for Write Leveling Mode.
  * Step 03. Memory Controller should configure Memory in Write Level Mode.
@@ -460,14 +460,7 @@ int ddr_hw_write_leveling(void)
 
 	/* Step 01. Send ALL Precharge command. */
 	send_directcmd(SDRAM_CMD_PALL, 0, (SDRAM_MODE_REG)CNULL, CNULL);
-#if (CFG_NSIH_EN == 0)
-#if (_DDR_CS_NUM > 1)
-	send_directcmd(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
-#endif
-#else
-	if(pSBI->DII.ChipNum > 1)
-		send_directcmd(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL, CNULL);
-#endif
+
 //	DMC_Delay(0x100);
 
 	/* Step 02. Set the MR1 Register for Write Leveling Mode */
@@ -493,14 +486,7 @@ int ddr_hw_write_leveling(void)
 
 	/* Step 03. Memory controller settings for the Write Leveling Mode. */
 	send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR1, MR1.Reg);
-#if (CFG_NSIH_EN == 0)
-#if (_DDR_CS_NUM > 1)
-	send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR1, MR1.Reg);
-#endif
-#else
-	if(pSBI->DII.ChipNum > 1)
-		send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR1, MR1.Reg);
-#endif
+
 //	DMC_Delay(0x100);
 
 	/* Step 03-02. Enable the ODT[1:0] (Signal High) */
@@ -540,14 +526,7 @@ int ddr_hw_write_leveling(void)
 	/* Step 10. Disable Memory in Write Leveling Mode */
 	MR1.MR1.WL      = 0;
 	send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR1, MR1.Reg);
-#if (CFG_NSIH_EN == 0)
-#if (_DDR_CS_NUM > 1)
-	send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR1, MR1.Reg);
-#endif
-#else
-	if (pSBI->DII.ChipNum > 1)
-		send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR1, MR1.Reg);
-#endif
+
 	DMC_Delay(0x100);
 
 	/* Step 11. Update ALL SDLL Resync. */
@@ -569,7 +548,7 @@ int ddr_hw_write_leveling(void)
 
 	return ret;
 }
-#endif
+#endif // #if (DDR_WRITE_LEVELING_EN == 1)
 
 #if ((DDR_GATE_LEVELING_EN == 1) && (MEM_CALIBRATION_INFO == 1))
 void gate_leveling_information(void)
