@@ -1307,7 +1307,7 @@ static int resetgen_sequence(void)
 	if (retry <= 0)
 		return -1;
 
-	return 0;	
+	return 0;
 }
 
 /*************************************************************
@@ -1318,7 +1318,7 @@ static int resetgen_sequence(void)
  * Step 01. Select Memory Type (=PHY_CON0[12:11]).
  *	     - ctrl_ddr_mode= 2'b11 (LPDDR3), 2'b10 (LPDDR2), 2'b00 (DDR2), 2'b01 (DDR3)
  * Step 02. Set Read Latency(RL), Burst Length(BL), Write Latency(WL)
- * Step 03. Set Write Latency(WL), Read Latency(RL), Burts Length(BL) 
+ * Step 03. Set Write Latency(WL), Read Latency(RL), Burts Length(BL)
  * Step 04. ZQ Calibration (please refer)
  *	     - Enable and Disable "zq_clk_div_en" in ZQ_CON0[18]
  *	     - Enable "zq_manual_str" in ZQ_CON0[1]
@@ -1330,88 +1330,96 @@ static int resetgen_sequence(void)
  * Step 07. Enable DQS pull down mode
  *	     - Set "ctrl_pulld_dqs=9'h1FF" (=LP_CON0[8:0]) in case of using 72bit PHY.
  *	     - Please be careful that DQS pull down can be disabled only after Gate Leveling is done.
- * Step 08. Update DLL information 
+ * Step 08. Update DLL information
  * ---------------------------------------------------------------------------------
  *				Drex Controller
  * ---------------------------------------------------------------------------------
- * Step 09. Memory Base Config 0/1 (if need) - DREX (Optional)
- * Step 10. Memory Config 0/1 (if need) - DREX (Optional)
- * Step 11. Set the Precharge Config and Power Down Config Register - DREX
- * Step 12. Set the Access Parmeters (AC) Timing.
- * Step 13. Set the Qos Control 0~15 and Qos Config 0 ~15 Registers. - DREX (Currently not is use)
- * Step 14. Confirm that after RESET# is de-asserted, 500us have passed before CKE	
+ * Step 09. Set the Memory Control and Phy Control0 (MemControl and PhyControl0)
+ * Step 10. Memory Base Config 0/1 (if need) - DREX (Optional)
+ * Step 11. Memory Config 0/1 (if need) - DREX (Optional)
+ * Step 12. Set the Precharge Config and Power Down Config Register - DREX
+ * Step 13. Set the Access Parmeters (AC) Timing.
+ * Step 14. Set the Qos Control 0~15 and Qos Config 0 ~15 Registers. - DREX (Currently not is use)
+ * Step 15. Confirm that after RESET# is de-asserted, 500us have passed before CKE
  *	     becomes active.
- * Step 15. Confirm that clocks(CK, CK#) needto be started and stabilzed for at least
+ * Step 16. Confirm that clocks(CK, CK#) needto be started and stabilzed for at least
  *	     10ns or 5tCK. (which is larger)
  * ---------------------------------------------------------------------------------
- * Step 16. Memory Controller should assert "dfi_ctrlupd_req" after "dfi_init_complete" is set
- *	     - Please keep "ctrl-initiated update" mode until finishing leveling and tranining.	     
+ * Step 17. Memory Controller should assert "dfi_ctrlupd_req" after "dfi_init_complete" is set
+ *	     - Please keep "ctrl-initiated update" mode until finishing leveling and tranining.
  * Step XX. Start Memory Initialization by memory controller
  * ---------------------------------------------------------------------------------
- * Step 17. Send NOP Command using the DirectCmd Register to assert and to hold CKE to a logic high level.
+ * Step 18. Send NOP Command using the DirectCmd Register to assert and to hold CKE to a logic high level.
  * Step XX. Wait for tXPR(max(5nCK,tRFC(min)10ns)) or set tXP to tXPR value before step 17.
  *	     if the system set tXP to tXPR, than the system must set tXP to proper value before
  *	     normal memory operation.
- * Step 18. Issue EMRS2 command using the DirectCmd register to program the operating parameters.
- * Step 19. Issue EMRS3 command using the DirectCmd register to program the operating parameters.
- * Step 20. Issue EMRS command using the DirectCmd register to program the enable the memory DLL.
+ * Step 19. Issue EMRS2 command using the DirectCmd register to program the operating parameters.
+ * Step 20. Issue EMRS3 command using the DirectCmd register to program the operating parameters.
+ * Step 21. Issue EMRS command using the DirectCmd register to program the enable the memory DLL.
  * 	     Issue MRS command using the DirectCmd register to program the enable the memory DLL.
- * Step 21. Issue EMRS2 command using the DirectCmd register to program the operating parameters
+ * Step 22. Issue EMRS2 command using the DirectCmd register to program the operating parameters
  *	     Without resetting the memory DLL.
- * Step 22. Issue a ZQINIT command using the DirectCmd register.
+ * Step 23. Issue a ZQINIT command using the DirectCmd register.
  * Step XX. if there are more external memory chips, perform steps 17 ~ 23 procedures for other
  *	     memory device.
  * ---------------------------------------------------------------------------------
  * 				Gate & Training (if need)
  * ---------------------------------------------------------------------------------
- * Step 23 - 26. Skip the following steps if Leveling and Tranining are not required. (Optional features)
+ * Step 24 - 26. Skip the following steps if Leveling and Tranining are not required. (Optional features)
  * 	    - Enable "ctrl_atgate" in PHY_CON0[6]
  *	    - Enable "p0_cmd_en" in PHY_CON0[14]
  *	    - Enable "InitDeskewEn" in PHY_CON2[6]
  *	    - Enable "byte_rdlvl_en" in PHY_CON0[13]
- * Step 27. The time to determine the VMP(Vaild Margin Period) Read Training
+ * Step 28. The time to determine the VMP(Vaild Margin Period) Read Training
  *	    - Recommended that "rdlvl_pass_adj=4" in PHY_CON1[19:16]
- * Step 28. 				(When using DDR3)
+ * Step 29. 				(When using DDR3)
  *	    - Set "cmd_active=14'h105E" as default value (=LP_DDR_CON3[13:0])
  *	    - Set "cmd_default=14'h107F" as default value (=LP_DDR_CON4[13:0])
- * Step 29. Recommand the "rdlvel_incr_adj=7'h01" for the best margin.
- * Step 30. DLL On/OFF and Read DLL Lock Value
+ * Step 30. Recommand the "rdlvel_incr_adj=7'h01" for the best margin.
+ * Step 31. DLL On/OFF and Read DLL Lock Value
  *	    - Read "ctrl_lock_value[8:0]" in MDLL_CON[16:8]
  *	    - Update "ctrl_force[8:0]" in MDLL_CON0[15:7] by the value of "ctrl_lock_value[8:0]
- * Step 31. DDR Controller Calibration
+ * Step 32. DDR Controller Calibration
  *	    - Write Leveling (for Fly-by)
  *	    - Gate Leveling (only for 800Mhz)
  *	    - Read DQ Calibration
  *	    - Write Latency Calibration (Must Write Leveling)
  *	    - Write DQ Calibration
- * Step 32. DLL Turn On
+ * Step 33. DLL Turn On
  *	    - Set "ctrl_dll_on=1" (=MDLL_CON0[5])
- * Step 33. Deskew Code is update.
+ * Step 34. Deskew Code is update.
  *	    - DLLDeskewEn=1" (=PHY_CON2[12]) to compensate Voltage, Temperature
  	       variation during.
- * Step 34. Phy Update Mode (0: MC-Initiated, 1: PHY-Intiated)
+ * Step 35. Phy Update Mode (0: MC-Initiated, 1: PHY-Intiated)
  * 	    - Set "upd_mode=0" (=OFFSETD_CON0[28]) for PHY_Initiated Update.
  * 		- if Ctrl-Initiated Update is used set "upd_mode=1" (refer )
   * ---------------------------------------------------------------------------------
- * Step 35. Enable and Disable "ctrl_resync"(=OFFSETD_CON0[24]" to make sure 
+ * Step 36. Enable and Disable "ctrl_resync"(=OFFSETD_CON0[24]" to make sure
  *	     All SDLL is update.
- * Step 36. Disable PHY gateing control through PHY APB I/F
+ * Step 37. Disable PHY gateing control through PHY APB I/F
  *	     if necessary(ctrl_Atgate, refer to PHY manual)	 (Current not is use)
- * Step 37. Send PALL command
- * Step 38. Set the (Phy Control and Memory Control)
- * Step 39. Set the Controller Control
- * Step 40. Set the Clock Gating Control
+ * Step 38. Send PALL command
+ * Step 39. Set the (Phy Control and Memory Control)
+ * Step 40. Set the Controller Control
+ * Step 41. Set the Clock Gating Control
  *************************************************************/
 int ddr3_initialize(unsigned int is_resume)
 {
 	union SDRAM_MR MR0, MR1, MR2, MR3;
-	unsigned int DDR_AL, DDR_WL, DDR_RL;
+	unsigned int DDR_WL, DDR_RL;
+	unsigned int DDR_AL1, DDR_AL2;
 	unsigned int temp;
 
 	MEMMSG("\r\nDDR3 POR Init Start\r\n");
 
+	/* Nexell Step XX. Get DRAM Information. */
+	get_dram_information((struct dram_device_info*)&g_ddr3_info);
+
 	/* Step 01. Reset (DPHY, DREX, DRAM)  (Min: 10ns, Typ: 200us) */
-	resetgen_sequence();
+	if (resetgen_sequence() < 0) {
+		MEMMSG("(DPHY, DREX) Controller Reset Failed! \r\n");
+		return -1;
+	}
 
 #if (CFG_NSIH_EN == 0)
 	pSBI->LvlTr_Mode = LVLTR_GT_LVL;
@@ -1433,42 +1441,49 @@ int ddr3_initialize(unsigned int is_resume)
 	pSBI->PHY_DSInfo.ZQ_DDS 	= PHY_DRV_STRENGTH_48OHM;
 	pSBI->PHY_DSInfo.ZQ_ODT 	= PHY_DRV_STRENGTH_120OHM;
 #endif
-	DDR_AL = 0;
+	DDR_AL1 = 0;
+	DDR_AL2 = 0;
 #if (CFG_NSIH_EN == 0)
-	if (MR1_nAL > 0)
-		DDR_AL = nCL - MR1_nAL;
+	if (MR1_nAL > 0) {
+		DDR_AL1 = nCL - MR1_nAL;
+		DDR_AL2 = nCWL - MR1_nAL;
+	}
 
-	DDR_WL = (DDR_AL + nCWL);
-	DDR_RL = (DDR_AL + nCL);
+	DDR_WL = (DDR_AL2 + nCWL);
+	DDR_RL = (DDR_AL1 + nCL);
 #else
-	if (pSBI->DII.MR1_AL > 0)
-		DDR_AL = pSBI->DII.CL - pSBI->DII.MR1_AL;
+	if (pSBI->DII.MR1_AL > 0) {
+		DDR_AL1 = (pSBI->DII.CL  - pSBI->DII.MR1_AL);
+		DDR_AL2 = (pSBI->DII.CWL - pSBI->DII.MR1_AL);
+	}
 
-	DDR_WL = (DDR_AL + pSBI->DII.CWL);
-	DDR_RL = (DDR_AL + pSBI->DII.CL);
+	DDR_RL = DDR_AL1 + pSBI->DII.CL;
+	DDR_WL = DDR_AL2 + pSBI->DII.CWL;
 #endif
 
-	if (is_resume == 0) {
-		MR2.Reg = 0;
+	/* temporary code according to suspend/resume policy. */
+//	if (is_resume == 0) {
+	{
+		MR2.Reg		= 0;
 		MR2.MR2.RTT_WR	= pSBI->DDR3_DSInfo.MR2_RTT_WR;
-		MR2.MR2.SRT	= 0; // self refresh normal range
-		MR2.MR2.ASR	= 0; // auto self refresh disable
+		MR2.MR2.SRT	= 0;						// self refresh normal range
+		MR2.MR2.ASR	= 0;						// auto self refresh disable
 #if (CFG_NSIH_EN == 0)
 		MR2.MR2.CWL	= (nCWL - 5);
 #else
 		MR2.MR2.CWL	= (pSBI->DII.CWL - 5);
 #endif
 
-		MR3.Reg 	= 0;
-		MR3.MR3.MPR 	= 0;
-		MR3.MR3.MPR_RF 	= 0;
+		MR3.Reg 	 = 0;
+		MR3.MR3.MPR 	 = 0;
+		MR3.MR3.MPR_RF 	 = 0;
 
-		MR1.Reg		= 0;
-		MR1.MR1.DLL 	= 0; // 0: Enable, 1 : Disable
+		MR1.Reg		 = 0;
+		MR1.MR1.DLL 	 = 0;						// 0: Enable, 1 : Disable
 #if (CFG_NSIH_EN == 0)
-		MR1.MR1.AL	= MR1_nAL;
+		MR1.MR1.AL	 = MR1_nAL;
 #else
-		MR1.MR1.AL	= pSBI->DII.MR1_AL;
+		MR1.MR1.AL	 = pSBI->DII.MR1_AL;
 #endif
 		MR1.MR1.ODS1	 = pSBI->DDR3_DSInfo.MR1_ODS & (1 << 1);
 		MR1.MR1.ODS0	 = pSBI->DDR3_DSInfo.MR1_ODS & (1 << 0);
@@ -1553,7 +1568,7 @@ int ddr3_initialize(unsigned int is_resume)
 
 	/* Step 03. Set Write Latency(WL), Read Latency(RL), Burts Length(BL) */
 	mmio_write_32(&pReg_DDRPHY->PHY_CON[4],
-			(DDR_WL << 16) |	// [20:16] T_wrdata_en (WL+1)
+			(DDR_WL << 16) |	// [20:16] ctrl_wrlat		// T_wrdata_en (WL+1)
 			(0x08  <<  8) |		// [12: 8] Burst Length(BL)
 			(DDR_RL <<  0));	// [ 4: 0] Read Latency(RL), 800MHz:0xB, 533MHz:0x5
 
@@ -1561,7 +1576,7 @@ int ddr3_initialize(unsigned int is_resume)
 #if 0
 	mmio_write_32( &pReg_DDRPHY->DRVDS_CON[0],      // 100: 48ohm, 101: 40ohm, 110: 34ohm, 111: 30ohm
 		(PHY_DRV_STRENGTH_30OHM <<  28) |       // [30:28] Data Slice 4
-		(pSBI->PHY_DSIssnfo.DRVDS_Byte3 <<  25) | // [27:25] Data Slice 3
+		(pSBI->PHY_DSInfo.DRVDS_Byte3 <<  25) | // [27:25] Data Slice 3
 		(pSBI->PHY_DSInfo.DRVDS_Byte2 <<  22) | // [24:22] Data Slice 2
 		(pSBI->PHY_DSInfo.DRVDS_Byte1 <<  19) | // [21:19] Data Slice 1
 		(pSBI->PHY_DSInfo.DRVDS_Byte0 <<  16) | // [18:16] Data Slice 0
@@ -1625,21 +1640,54 @@ int ddr3_initialize(unsigned int is_resume)
 	/* Step XX.  Phy Update Mode (0: MC-Initiated, 1: PHY-Initiated) */
 	mmio_set_32  (&pReg_DDRPHY->OFFSETD_CON, (0x1 << 28));			// upd_mode=1
 #endif
-				
-#if 0 // Nexell Step XX. unknown
-	mmio_write_32(&pReg_DDRPHY->RODT_CON,
-				(0x0 << 28) |					// [31:28] ctrl_readduradj
-				(0x1 << 24) |					// [27:24] ctrl_readadj
-//				(0x1 << 16)					// [  :16] ctrl_read_dis
-				(0x0 << 0));					// [  : 0] ctrl_read_width
-#endif
 
-	/* [Drex] Step 8 : Update DLL information */
+	/* [Drex] Step 08 : Update DLL information */
 	mmio_set_32  (&pReg_Drex->PHYCONTROL,(0x1 << 3));			// Force DLL Resyncronization
 	mmio_clear_32(&pReg_Drex->PHYCONTROL, (0x1 << 3));			// Force DLL Resyncronization
 
+#if 1
+	/* [Drex] Step 09-01. Set the Memory Control(MemControl)  */
+	mmio_write_32(&pReg_Drex->MEMCONTROL,
+		    	(0x0 << 29) |						// [31:29] pause_ref_en : Refresh command issue Before PAUSE ACKNOLEDGE
+			(0x0 << 28) |						// [   28] sp_en        : Read with Short Preamble in Wide IO Memory
+			(0x0 << 27) |						// [   27] pb_ref_en    : Per bank refresh for LPDDR4/LPDDR3
+//			(0x0 << 25) |           					// [26:25] reserved : SBZ
+			(0x0 << 24) |						// [   24] pzq_en       : DDR3 periodic ZQ(ZQCS) enable
+//			(0x0  <<  23) |						// [   23] reserved     :SBZ
+			(0x3 << 20) |						// [22:20] bl : Memory Burst Length :: 3'h3  - 8
+#if (CFG_NSIH_EN == 0)
+			((_DDR_CS_NUM - 1) << 16) |				// [19:16] num_chip : Number of Memory Chips :: 4'h0  - 1chips
+#else
+			((pSBI->DII.ChipNum - 1) << 16) |			// [19:16] num_chip : Number of Memory Chips :: 4'h0  - 1chips
+#endif
+			(0x2 << 12) |						// [15:12] mem_width    : Width of Memory Data Bus :: 4'h2  - 32bits
+			(0x6 <<  8) |						// [11: 8] mem_type     : Type of Memory :: 4'h6  - ddr3
+			(0x0 <<  6) |						// [ 7: 6] add_lat_pall : Additional Latency for PALL in cclk cycle :: 2'b00 - 0 cycle
+			(0x0 <<  5) |						// [    5] dsref_en     : Dynamic Self Refresh :: 1'b0  - Disable
+//			(0x0 <<   4) |						// [    4] Reserved : SBZ
+			(0x0 <<  2) |						// [ 3: 2] dpwrdn_type  : Type of Dynamic Power Down :: 2'b00 - Active/precharge power down
+			(0x0 <<  1) |						// [    1] dpwrdn_en    : Dynamic Power Down :: 1'b0  - Disable
+			(0x0 <<  0));						// [    0] clk_stop_en  : Dynamic Clock Control :: 1'b0  - Always running
+#if 1
+	/* Step 09-02. Set the (Phy Control and Memory Control) */
+	mmio_write_32(&pReg_Drex->PHYCONTROL,
+		    	(0x1 << 31) |						// [   31] mem_term_en. Termination Enable for memory. Disable : 0, Enable : 1
+			(0x1 << 30) |						// [   30] phy_term_en. Termination Enable for PHY. Disable : 0, Enable : 1
+			(0x1 << 29) |						// [   29] ctrl_shgate. Duration of DQS Gating Signal. gate signal length <= 200MHz : 0, > 200MHz : 1
+			(0x0 << 24) |						// [28:24] ctrl_pd. Input Gate for Power Down.
+			(0x0 <<  8) |						// [    8] Termination Type for Memory Write ODT (0:single, 1:both chip ODT)
+			(0x0 <<  7) |						// [    7] Resync Enable During PAUSE Handshaking
+			(0x0 <<  4) |						// [ 6: 4] dqs_delay. Delay cycles for DQS cleaning. refer to DREX datasheet
+			(0x0 <<  3) |						// [    3] fp_resync. Force DLL Resyncronization : 1. Test : 0x0
+			(0x0 <<  2) |						// [    2] Drive Memory DQ Bus Signals
+			(0x0 <<  1) |						// [    1] sl_dll_dyn_con. Turn On PHY slave DLL dynamically. Disable : 0, Enable : 1
+			(0x1 << 0));						// [    0] mem_term_chips. Memory Termination between chips(2CS). Disable : 0, Enable : 1
+#endif
+#endif
+	mmio_set_32  (&pReg_Drex->PHYCONTROL, (0x1 << 3));			// Force DLL Resyncronization
+	mmio_clear_32(&pReg_Drex->PHYCONTROL, (0x1 << 3));			// Force DLL Resyncronization
 
-	/* [Drex] Step 11. Memory Base Config */
+	/* [Drex] Step 10. Memory Base Config */
 	mmio_write_32(&pReg_DrexTZ->MEMBASECONFIG[0], (0x040 << 16) |		// chip_base[26:16]. AXI Base Address. if 0x20 ==> AXI base addr of memory : 0x2000_0000
 #if (CFG_NSIH_EN == 0)
 		      (chip_mask << 0));					// 256MB:0x7F0, 512MB: 0x7E0, 1GB:0x7C0, 2GB: 0x780, 4GB:0x700
@@ -1657,7 +1705,7 @@ int ddr3_initialize(unsigned int is_resume)
 			(pSBI->DII.ChipMask << 0));				// chip_mask[10:0]. 2048 - chip size
 #endif
 
-	/* [Drex] Step 12. Memory Config */
+	/* [Drex] Step 11. Memory Config */
 	mmio_write_32(&pReg_DrexTZ->MEMCONFIG[0],
 				(0x0 << 20) |					// bank lsb, LSB of Bank Bit Position in Complex Interleaved Mapping 0:8, 1: 9, 2:10, 3:11, 4:12, 5:13
 				(0x0 << 19) |					// rank inter en, Rank Interleaved Address Mapping
@@ -1698,7 +1746,7 @@ int ddr3_initialize(unsigned int is_resume)
 	}
 #endif
 
-	/* [Drex] Step 13. Precharge Configuration */
+	/* [Drex] Step 12. Precharge Configuration */
 #if 0
 	mmio_write_32( &pReg_Drex->PRECHCONFIG0,
 			(0xF <<  28) |						// Timeout Precharge per Port
@@ -1709,7 +1757,7 @@ int ddr3_initialize(unsigned int is_resume)
 	mmio_write_32(&pReg_Drex->PRECHCONFIG1, 0x00);				//- precharge cycle
 	mmio_write_32(&pReg_Drex->PWRDNCONFIG,  0xFF);				//- low power counter
 
-	/* [Drex] Step 14.  Set the Access(AC) Timing */
+	/* [Drex] Step 13.  Set the Access(AC) Timing */
 #if (CFG_NSIH_EN == 0)
 	mmio_write_32(&pReg_Drex->TIMINGAREF,
 			(tREFIPB << 16) |					//- rclk (MPCLK)
@@ -1751,7 +1799,7 @@ int ddr3_initialize(unsigned int is_resume)
 //	mmio_write_32( &pReg_Drex->WRLVL_CONFIG[0], (tWLO <<  4));		// tWLO[7:4]
 #else
 
-	/* [Drex] Step 14.  Set the Access(AC) Timing */
+	/* [Drex] Step 15.  Set the Access(AC) Timing */
 	mmio_write_32(&pReg_Drex->TIMINGAREF, pSBI->DII.TIMINGAREF);		//- refresh counter, 800MHz : 0x618
 
 	mmio_write_32(&pReg_Drex->ACTIMING0.TIMINGROW, pSBI->DII.TIMINGROW);
@@ -1771,54 +1819,10 @@ int ddr3_initialize(unsigned int is_resume)
 //	mmio_write_32( &pReg_Drex->WRLVL_CONFIG[0], (tWLO   <<   4) );         // tWLO[7:4]
 #endif
 
-#if 1	/* [Drex] Step XX. Set the Memory Control(MemControl)  */
-	mmio_write_32(&pReg_Drex->MEMCONTROL,
-		    	(0x0 << 29) |						// [31:29] pause_ref_en : Refresh command issue Before PAUSE ACKNOLEDGE
-			(0x0 << 28) |						// [   28] sp_en        : Read with Short Preamble in Wide IO Memory
-			(0x0 << 27) |						// [   27] pb_ref_en    : Per bank refresh for LPDDR4/LPDDR3
-//			(0x0 << 25) |           					// [26:25] reserved : SBZ
-			(0x0 << 24) |						// [   24] pzq_en       : DDR3 periodic ZQ(ZQCS) enable
-//			(0x0  <<  23) |						// [   23] reserved     :SBZ
-			(0x3 << 20) |						// [22:20] bl : Memory Burst Length :: 3'h3  - 8
-#if (CFG_NSIH_EN == 0)
-			((_DDR_CS_NUM - 1) << 16) |				// [19:16] num_chip : Number of Memory Chips :: 4'h0  - 1chips
-#else
-			((pSBI->DII.ChipNum - 1) << 16) |			// [19:16] num_chip : Number of Memory Chips :: 4'h0  - 1chips
-#endif
-			(0x2 << 12) |						// [15:12] mem_width    : Width of Memory Data Bus :: 4'h2  - 32bits
-			(0x6 <<  8) |						// [11: 8] mem_type     : Type of Memory :: 4'h6  - ddr3
-			(0x0 <<  6) |						// [ 7: 6] add_lat_pall : Additional Latency for PALL in cclk cycle :: 2'b00 - 0 cycle
-			(0x0 <<  5) |						// [    5] dsref_en     : Dynamic Self Refresh :: 1'b0  - Disable
-//			(0x0 <<   4) |						// [    4] Reserved : SBZ
-			(0x0 <<  2) |						// [ 3: 2] dpwrdn_type  : Type of Dynamic Power Down :: 2'b00 - Active/precharge power down
-			(0x0 <<  1) |						// [    1] dpwrdn_en    : Dynamic Power Down :: 1'b0  - Disable
-			(0x0 <<  0));						// [    0] clk_stop_en  : Dynamic Clock Control :: 1'b0  - Always running
-#endif
-
-#if 0
-#if (CFG_NSIH_EN == 0)
-	    mmio_write_32( &pReg_DDRPHY->OFFSETR_CON[0], READDELAY);
-	    mmio_write_32( &pReg_DDRPHY->OFFSETW_CON[0], WRITEDELAY);
-#else
-	    mmio_write_32( &pReg_DDRPHY->OFFSETR_CON[0], pSBI->DII.READDELAY);
-	    mmio_write_32( &pReg_DDRPHY->OFFSETW_CON[0], pSBI->DII.WRITEDELAY);
-#endif
-#else
-	/* Set Read skew */
-	mmio_write_32(&pReg_DDRPHY->OFFSETR_CON[0], 0x08080808);
-
-	/* Set Write skew */
-	mmio_write_32(&pReg_DDRPHY->OFFSETW_CON[0], 0x08080808);
-#endif
-	
-	/* Set ctrl_shiftc value. */
-//	mmio_write_32(&pReg_DDRPHY->SHIFTC_CON, 0x00);
-
-	mmio_set_32  (&pReg_Drex->PHYCONTROL, (0x1 << 3));			// Force DLL Resyncronization
-	mmio_clear_32(&pReg_Drex->PHYCONTROL, (0x1 << 3));			// Force DLL Resyncronization
-
-	if (is_resume == 0) {
-		/* Step 17 :  Send NOP command. */
+	/* temporary code according to suspend/resume policy. */
+//	if (is_resume == 0) {
+	{
+		/* Step 18 :  Send NOP command. */
 		send_directcmd(SDRAM_CMD_NOP, 0, (SDRAM_MODE_REG)CNULL, CNULL);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
@@ -1828,7 +1832,7 @@ int ddr3_initialize(unsigned int is_resume)
 		if (pSBI->DII.ChipNum > 1)
 			send_directcmd(SDRAM_CMD_NOP, 1, (SDRAM_MODE_REG)CNULL, CNULL);
 #endif
-		/* Step 18 :  Send MR2 command. */
+		/* Step 19 :  Send MR2 command. */
 		send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR2, MR2.Reg);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
@@ -1838,7 +1842,7 @@ int ddr3_initialize(unsigned int is_resume)
 		if (pSBI->DII.ChipNum > 1)
 			send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR2, MR2.Reg);
 #endif
-		/* Step 19 :  Send MR3 command. */
+		/* Step 20 :  Send MR3 command. */
 		send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR3, MR3.Reg);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
@@ -1848,7 +1852,7 @@ int ddr3_initialize(unsigned int is_resume)
 		if (pSBI->DII.ChipNum > 1)
 			send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR3, MR3.Reg);
 #endif
-		/* Step 20 :  Send MR1 command. */
+		/* Step 21 :  Send MR1 command. */
 		send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR1, MR1.Reg);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
@@ -1858,7 +1862,7 @@ int ddr3_initialize(unsigned int is_resume)
 		if (pSBI->DII.ChipNum > 1)
 			send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR1, MR1.Reg);
 #endif
-		// Step 21 :  Send MR0 command.
+		/* Step 22 :  Send MR0 command. */
 		send_directcmd(SDRAM_CMD_MRS, 0, SDRAM_MODE_REG_MR0, MR0.Reg);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
@@ -1869,7 +1873,7 @@ int ddr3_initialize(unsigned int is_resume)
 			send_directcmd(SDRAM_CMD_MRS, 1, SDRAM_MODE_REG_MR0, MR0.Reg);
 #endif
 
-		// Step 22 : Send ZQ Init command
+		/* Step 23 : Send ZQ Init command */
 		send_directcmd(SDRAM_CMD_ZQINIT, 0, (SDRAM_MODE_REG)CNULL, CNULL);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
@@ -1885,30 +1889,27 @@ int ddr3_initialize(unsigned int is_resume)
 #if 1	/* Skip the following steps if Leveling and Training are not required. (Optional features) */
 	MEMMSG("\r\n########## Leveling & Training ##########\r\n");
 
-	/*  Step XX. Unknown ?? */
-	mmio_clear_32(&pReg_DDRPHY->OFFSETD_CON, (0x1 << 28));			// upd_mode=0, PHY side update mode.
-
-	/* Step 23. Generate "ctrl_gate_p*", ctrl_read_p* */
+	/* Step 24. Generate "ctrl_gate_p*", ctrl_read_p* */
 	mmio_set_32(&pReg_DDRPHY->PHY_CON[0], (0x1 <<  6));			// ctrl_atgate = 1
-	/* Step 24.  Issue Phase 0/1 Read Command during read leveling */
+	/* Step 25.  Issue Phase 0/1 Read Command during read leveling */
 	mmio_set_32(&pReg_DDRPHY->PHY_CON[0], (0x1 << 14));			// p0_cmd_en = 1
-	/* Step 25.  Initialize related logic before DQ Calibration */
+	/* Step 26.  Initialize related logic before DQ Calibration */
 	mmio_set_32(&pReg_DDRPHY->PHY_CON[2], (0x1 <<  6));			// InitDeskewEn = 1
 
-	/* Step 26. Byte Leveling enable. */
+	/* Step 27. Byte Leveling enable. */
 	mmio_set_32(&pReg_DDRPHY->PHY_CON[0], (0x1 << 13));			// byte_rdlvl_en = 1
 
-	/* Step 27. The time to determine the VMP(Vaild Margin Period) Read Training */
+	/* Step 28. The time to determine the VMP(Vaild Margin Period) Read Training */
 	temp = mmio_read_32(&pReg_DDRPHY->PHY_CON[1]) & ~(0xF << 16);		// rdlvl_pass_adj = 4
 	temp |= (0x4 << 16);
 	mmio_write_32(&pReg_DDRPHY->PHY_CON[1], temp);
 
-	/* Step 28-1. Set "cmd_active=14'h105E" as default value (=LP_DDR_CON3[13:0]) */
+	/* Step 29-1. Set "cmd_active=14'h105E" as default value (=LP_DDR_CON3[13:0]) */
 	mmio_write_32(&pReg_DDRPHY->LP_DDR_CON[3], 0x105E);			// cmd_active  = DDR3:0x105E, LPDDDR2 or LPDDDR3:0x000E
-	/* Step 28-2. Set "cmd_default=14'h107F" as default value (=LP_DDR_CON4[13:0]) */
+	/* Step 29-2. Set "cmd_default=14'h107F" as default value (=LP_DDR_CON4[13:0]) */
 	mmio_write_32(&pReg_DDRPHY->LP_DDR_CON[4], 0x107F); 			// cmd_default = DDR3:0x107F, LPDDDR2 or LPDDDR3:0x000F
 
-	/* Step 29. Recommand the "rdlvel_incr_adj=7'h01" for the best margin */
+	/* Step 30. Recommand the "rdlvel_incr_adj=7'h01" for the best margin */
 	temp = mmio_read_32(&pReg_DDRPHY->PHY_CON[2]) & ~(0x7F << 16);		// rdlvl_incr_adj=1
 	temp |= (0x1 << 16);
 	mmio_write_32(&pReg_DDRPHY->PHY_CON[2], temp);
@@ -1921,12 +1922,12 @@ int ddr3_initialize(unsigned int is_resume)
 #else
 
 	/* 
-	  * Step 30. Disable "ctrl_dll_on" int MDLL_CON0[5] before Leveling
+	  * Step 31. Disable "ctrl_dll_on" int MDLL_CON0[5] before Leveling
 	  * Turn on if the signal is High DLL turn on/Low is turen off.
 	  */
 	do {
 		mmio_set_32(&pReg_DDRPHY->MDLL_CON[0],(0x1 << 5));		// ctrl_dll_on[5]=1
-		/* Step 30-1. Read "ctrl_lock_value[8:0]" in MDLL_CON[16:8] */
+		/* Step 31-1. Read "ctrl_lock_value[8:0]" in MDLL_CON[16:8] */
 		do {
 			temp = mmio_read_32(&pReg_DDRPHY->MDLL_CON[1]);		// read lock value
 		} while ((temp & 0x7) != 0x7);
@@ -1940,21 +1941,27 @@ int ddr3_initialize(unsigned int is_resume)
 #if (DDR_MEMINFO_SHOWLOCK == 1)
 	show_lock_value();
 #endif
-	/* Step 30-2. Update "ctrl_force[8:0]" in MDLL_CON0[15:7] by the value of "ctrl_lock_value[8:0] */
+	/* Step 31-2. Update "ctrl_force[8:0]" in MDLL_CON0[15:7] by the value of "ctrl_lock_value[8:0] */
 	temp = mmio_read_32(&pReg_DDRPHY->MDLL_CON[0]) & ~(0x1FF << 7);
 	temp |= (g_Lock_Val << 7);
 	mmio_write_32(&pReg_DDRPHY->MDLL_CON[0], temp);				// ctrl_force[16:8]
 
+	mmio_set_32  (&pReg_DDRPHY->RODT_CON,    (0x1  << 28));		// ctrl_readduradj [31:28]
+
 #if (SKIP_LEVELING_TRAINING == 0)
-	/* Step 31. DDR Controller Calibration*/
-	if (is_resume == 0) {
-		/* Step 31-1. Write Leveling (for Fly-by) */
+	/* Step 32. DDR Controller Calibration*/
+
+	/* temporary code according to suspend/resume policy. */
+//	if (is_resume == 0) {
+	{
+		/* Step 32-1. Write Leveling (for Fly-by) */
 		if (pSBI->LvlTr_Mode & LVLTR_WR_LVL) {
 			if (ddr_hw_write_leveling() < 0)
-				return -1;			
+				return -1;
 		}
+
 		/* 
-		  * Step 31-2. Gate Leveling
+		  * Step 32-2. Gate Leveling
 		  * (It should be used only for DDR3 (800Mhz))
 		  */
 		if (pSBI->LvlTr_Mode & LVLTR_GT_LVL) {
@@ -1962,24 +1969,24 @@ int ddr3_initialize(unsigned int is_resume)
 				return -1;
 		}
 
-		/* Step 31-3. Read DQ Calibration */
+		/* Step 32-3. Read DQ Calibration */
 		if (pSBI->LvlTr_Mode & LVLTR_RD_CAL) {
 			if (ddr_read_dq_calibration() < 0)
 				return -1;
 		}
 
-		/* Step 31-4. Write Latenty Calibration */
+		/* Step 32-4. Write Latenty Calibration */
 		if (pSBI->LvlTr_Mode & LVLTR_WR_LVL) {
 			if (ddr_write_latency_calibration() < 0)
 				return -1;
 		}
 
-		/* Step 31-5. Write DQ Calibration */
+		/* Step 32-5. Write DQ Calibration */
 		if (pSBI->LvlTr_Mode & LVLTR_WR_CAL) {
 			if (ddr_write_dq_calibration() < 0)
 				return -1;
 		}
-#if 1
+#if 0
 		/* Nexell Step XX. Save leveling & training values. */
 	        mmio_write_32(&pReg_Alive->ALIVEPWRGATEREG,     1);		// open alive power gate
 
@@ -1995,78 +2002,7 @@ int ddr3_initialize(unsigned int is_resume)
 
 	        mmio_write_32(&pReg_Alive->ALIVEPWRGATEREG,     0);		// close alive power gate
 #endif
-	} else {
-		unsigned int lock_div4 = (g_Lock_Val >> 2);
-
-		/* Nexell Step XX. Restore leveling & training values. */
-		mmio_write_32(&pReg_Alive->ALIVEPWRGATEREG, 1);			// open alive power gate
-		DMC_Delay(100);
-		g_GT_cycle = mmio_read_32(&pReg_Alive->ALIVESCRATCHVALUE5);	// read - ctrl_shiftc
-		g_GT_code = mmio_read_32 (&pReg_Alive->ALIVESCRATCHVALUE6);	// read - ctrl_offsetc
-		g_RD_vwmc = mmio_read_32 (&pReg_Alive->ALIVESCRATCHVALUE7);	// read - ctrl_offsetr
-		g_WR_vwmc = mmio_read_32 (&pReg_Alive->ALIVESCRATCHVALUE8);	// read - ctrl_offsetw
-//		mmio_write_32(&pReg_Alive->ALIVEPWRGATEREG, 0);		// close alive power gate
-
-		if (pSBI->LvlTr_Mode & LVLTR_WR_LVL)
-			mmio_write_32(&pReg_DDRPHY->WR_LVL_CON[0], g_WR_lvl);
-
-		if (pSBI->LvlTr_Mode & LVLTR_GT_LVL) {
-			unsigned int i, min;
-			unsigned int GT_cycle = 0;
-			unsigned int GT_code = 0;
-
-			mmio_set_32(&pReg_DDRPHY->PHY_CON[2], (0x1 << 24));	// gate_cal_mode[24] = 1
-			mmio_set_32(&pReg_DDRPHY->PHY_CON[0], (0x5 <<  6));	// ctrl_shgate[8]=1, ctrl_atgate[6]=1
-			mmio_clear_32(&pReg_DDRPHY->PHY_CON[1], (0xF << 20));	// ctrl_gateduradj[23:20] = DDR3: 0x0, LPDDR3: 0xB, LPDDR2: 0x9
-
-			min = g_GT_cycle & 0x7;
-			for (i = 1; i < 4; i++) {
-				temp = (g_GT_cycle >> (3 * i)) & 0x7;
-				if (temp < min)
-					min = temp;
-			}
-
-			if (min) {
-				GT_cycle = (g_GT_cycle & 0x7) - min;
-				for (i = 1; i < 4; i++) {
-					temp = ((g_GT_cycle >> (3 * i)) & 0x7) -
-					       min;
-					GT_cycle |= (temp << (3 * i));
-				}
-
-				min = ((mmio_read_32(&pReg_DDRPHY->PHY_CON[1]) >> 28) &
-				       0xF) + min;				// ctrl_gateadj[31:28]
-
-				temp = mmio_read_32(&pReg_DDRPHY->PHY_CON[1]) & 0x0FFFFFFF;
-				temp |= (min << 28);
-				mmio_write_32(&pReg_DDRPHY->PHY_CON[1], temp);
-			}
-
-			MEMMSG("min = %d \r\n", min);
-			MEMMSG("GT_cycle  = 0x%08X\r\n", GT_cycle);
-
-			GT_code = get_vwmc_offset(g_GT_code, lock_div4);
-			mmio_write_32(&pReg_DDRPHY->OFFSETC_CON[0], GT_code);
-			mmio_write_32(&pReg_DDRPHY->SHIFTC_CON, 0x00);
-
-//			mmio_clear_32(&pReg_DDRPHY->PHY_CON[2], (0x1 << 24));	// gate_cal_mode[24] = 0
-			mmio_write_32(&pReg_DDRPHY->LP_CON, 0x0);		// ctrl_pulld_dqs[8:0] = 0
-//			mmio_clear_32(&pReg_DDRPHY->RODT_CON, (0x1 << 16));	// ctrl_read_dis[16] = 0
-		}
-
-		if (pSBI->LvlTr_Mode & LVLTR_RD_CAL) {
-			g_RD_vwmc = get_vwmc_offset(g_RD_vwmc, lock_div4);
-			mmio_write_32(&pReg_DDRPHY->OFFSETR_CON[0], g_RD_vwmc);
-		}
-
-		if (pSBI->LvlTr_Mode & LVLTR_WR_LVL)
-			ddr_write_latency_calibration();
-
-		if (pSBI->LvlTr_Mode & LVLTR_WR_CAL) {
-			g_WR_vwmc = get_vwmc_offset(g_WR_vwmc, lock_div4);
-			mmio_write_32(&pReg_DDRPHY->OFFSETW_CON[0], g_WR_vwmc);
-		}
-	}// if (is_resume)
+	}
 	/* Nexell Step XX. (Must need step?) */
 	mmio_set_32  (&pReg_DDRPHY->OFFSETD_CON, (0x1 << 24));			// ctrl_resync[24]=0x1 (HIGH)
 	mmio_clear_32(&pReg_DDRPHY->OFFSETD_CON, (0x1 << 24));			// ctrl_resync[24]=0x0 (LOW)
@@ -2075,24 +2011,24 @@ int ddr3_initialize(unsigned int is_resume)
 	/* Nexell Step XX.  */
 	mmio_clear_32(&pReg_DDRPHY->PHY_CON[0],  (0x3 << 13));			// p0_cmd_en[14]=0, byte_rdlvl_en[13]=0
 #endif
-	/* Step 32. DLL turn on */
+	/* Step 33. DLL turn on */
 	mmio_set_32  (&pReg_DDRPHY->MDLL_CON[0], (0x1 << 5));			// ctrl_dll_on[5]=1
 
-	/* Step 33. Deskew Code is updated. */
+	/* Step 34. Deskew Code is updated. */
 	mmio_set_32  (&pReg_DDRPHY->PHY_CON[2],  (0x1 << 12));			// DLLDeskewEn[12]=1
 
-	/* Step 34.  Phy Update Mode (0: MC-Initiated, 1: PHY-Initiated) */
+	/* Step 35.  Phy Update Mode (0: MC-Initiated, 1: PHY-Initiated) */
 	mmio_set_32  (&pReg_DDRPHY->OFFSETD_CON, (0x1 << 28));			// upd_mode=1
 
-	/* Step 35. Enable and Disable "ctrl_resync"(=OFFSETD_CON0[24]" to make sure All SDLL is updated. */
+	/* Step 36. Enable and Disable "ctrl_resync"(=OFFSETD_CON0[24]" to make sure All SDLL is updated. */
 	mmio_set_32  (&pReg_Drex->PHYCONTROL, (0x1 << 3));			// Force DLL Resyncronization
 	mmio_clear_32(&pReg_Drex->PHYCONTROL, (0x1 << 3));			// Force DLL Resyncronization
 #endif // Skip the following steps if Leveling and Training are not required. (Optional features)
 
-	/* Step 36. Disable PHY gateing control through PHY APB I/F */
+	/* Step 37. Disable PHY gateing control through PHY APB I/F */
 	/* if necessary(ctrl_Atgate, refer to PHY manual)		    */
 
-	/* Step 37. Send PALL command */
+	/* Step 38. Send PALL command */
 	send_directcmd(SDRAM_CMD_PALL, 0, (SDRAM_MODE_REG)CNULL, CNULL);
 #if (CFG_NSIH_EN == 0)
 #if (_DDR_CS_NUM > 1)
@@ -2103,7 +2039,33 @@ int ddr3_initialize(unsigned int is_resume)
 		send_directcmd(SDRAM_CMD_PALL, 1, (SDRAM_MODE_REG)CNULL,
 				  CNULL);
 #endif
-	/* Step 38. Set the (Phy Control and Memory Control) */
+
+#if 0	// Set the MemControl0 & PhyControl0 (Optional)
+#if 0	/* [Drex] Step 39-1. Set the Memory Control(MemControl)  (Optional) */
+	mmio_write_32(&pReg_Drex->MEMCONTROL,
+		    	(0x0 << 29) |						// [31:29] pause_ref_en : Refresh command issue Before PAUSE ACKNOLEDGE
+			(0x0 << 28) |						// [   28] sp_en        : Read with Short Preamble in Wide IO Memory
+			(0x0 << 27) |						// [   27] pb_ref_en    : Per bank refresh for LPDDR4/LPDDR3
+//			(0x0 << 25) |           					// [26:25] reserved : SBZ
+			(0x0 << 24) |						// [   24] pzq_en       : DDR3 periodic ZQ(ZQCS) enable
+//			(0x0 << 23) |						// [   23] reserved     :SBZ
+			(0x3 << 20) |						// [22:20] bl : Memory Burst Length :: 3'h3  - 8
+#if (CFG_NSIH_EN == 0)
+			((_DDR_CS_NUM - 1) << 16) |				// [19:16] num_chip : Number of Memory Chips :: 4'h0  - 1chips
+#else
+			((pSBI->DII.ChipNum - 1) << 16) |			// [19:16] num_chip : Number of Memory Chips :: 4'h0  - 1chips
+#endif
+			(0x2 << 12) |						// [15:12] mem_width    : Width of Memory Data Bus :: 4'h2  - 32bits
+			(0x6 <<  8) |						// [11: 8] mem_type     : Type of Memory :: 4'h6  - ddr3
+			(0x0 <<  6) |						// [ 7: 6] add_lat_pall : Additional Latency for PALL in cclk cycle :: 2'b00 - 0 cycle
+			(0x0 <<  5) |						// [    5] dsref_en     : Dynamic Self Refresh :: 1'b0  - Disable
+//			(0x0 <<  4) |						// [    4] Reserved : SBZ
+			(0x0 <<  2) |						// [ 3: 2] dpwrdn_type  : Type of Dynamic Power Down :: 2'b00 - Active/precharge power down
+			(0x0 <<  1) |						// [    1] dpwrdn_en    : Dynamic Power Down :: 1'b0  - Disable
+			(0x0 <<  0));						// [    0] clk_stop_en  : Dynamic Clock Control :: 1'b0  - Always running
+#endif
+
+	/* [Drex] Step 39-2. Set the (Phy Control and Memory Control) */
 	mmio_write_32(&pReg_Drex->PHYCONTROL,
 		    	(0x1 << 31) |						// [   31] mem_term_en. Termination Enable for memory. Disable : 0, Enable : 1
 			(0x1 << 30) |						// [   30] phy_term_en. Termination Enable for PHY. Disable : 0, Enable : 1
@@ -2116,24 +2078,24 @@ int ddr3_initialize(unsigned int is_resume)
 			(0x0 <<  2) |						// [    2] Drive Memory DQ Bus Signals
 			(0x0 <<  1) |						// [    1] sl_dll_dyn_con. Turn On PHY slave DLL dynamically. Disable : 0, Enable : 1
 			(0x1 << 0));						// [    0] mem_term_chips. Memory Termination between chips(2CS). Disable : 0, Enable : 1
-
-	/* Step 39. Set the Controller Control */
-	temp = (unsigned int)((0x0 << 28) |					// [   28] dfi_init_start
-			  (0xFFF << 16) |					// [27:16] timeout_level0
-			  (0x1   << 12) |					// [14:12] rd_fetch
-			  (0x1   <<  8) |					// [    8] empty
-			  (0x0   <<  6) |					// [ 7: 6] io_pd_con
-			  (0x1   <<  5) |					// [    5] aref_en - Auto Refresh Counter. Disable:0, Enable:1
-			  (0x0   <<  3) |					// [    3] update_mode - Update Interface in DFI.
-			  (0x0   <<  1) |					// [ 2: 1] clk_ratio
-			  (0x0   <<  0));					// [    0] ca_swap
+#endif
+	/* [Drex] Step 40. Set the Controller Control */
+	temp = (unsigned int)((0x0   << 28) |					// [   28] dfi_init_start
+			      (0xFFF << 16) |					// [27:16] timeout_level0
+			      (0x1   << 12) |					// [14:12] rd_fetch
+			      (0x1   <<  8) |					// [    8] empty
+			      (0x0   <<  6) |					// [ 7: 6] io_pd_con
+			      (0x1   <<  5) |					// [    5] aref_en - Auto Refresh Counter. Disable:0, Enable:1
+			      (0x0   <<  3) |					// [    3] update_mode - Update Interface in DFI.
+			      (0x0   <<  1) |					// [ 2: 1] clk_ratio
+			      (0x0   <<  0));					// [    0] ca_swap
 
 	if (is_resume)
 		temp &= ~(0x1 << 5);
 
 	mmio_write_32(&pReg_Drex->CONCONTROL, temp);
 
-	/* Step 40. Set the Clock Gating Control */
+	/* [Drex] Step 41. Set the Clock Gating Control */
 	mmio_write_32(&pReg_Drex->CGCONTROL,
 			(0x0 <<  4) |						// [    4] phy_cg_en
 			(0x0 <<  3) |						// [    3] memif_cg_en
@@ -2157,4 +2119,5 @@ int ddr3_initialize(unsigned int is_resume)
 	MEMMSG("\r\n\r\n");
 
 	return CTRUE;
+}
 }
