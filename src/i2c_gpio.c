@@ -97,6 +97,12 @@ void I2C_Init( U8 gpioGRP, U8 gpioSCL, U8 gpioSDA )
 	SetIO32  (&pReg_GPIO[g_I2C_GPIO_GRP]->GPIOx_PULLENB,    (1<<g_I2C_GPIO_SDA) );  // pull enable
 	SetIO32  (&pReg_GPIO[g_I2C_GPIO_GRP]->GPIOx_PULLSEL,    (1<<g_I2C_GPIO_SCL) );  // pullup
 	SetIO32  (&pReg_GPIO[g_I2C_GPIO_GRP]->GPIOx_PULLENB,    (1<<g_I2C_GPIO_SCL) );  // pull enable
+
+	SetIO32  (&pReg_GPIO[g_I2C_GPIO_GRP]->GPIOx_PULLSEL_DISABLE_DEFAULT,    (1<<g_I2C_GPIO_SDA) );  // pullup
+	SetIO32  (&pReg_GPIO[g_I2C_GPIO_GRP]->GPIOx_PULLENB_DISABLE_DEFAULT,    (1<<g_I2C_GPIO_SDA) );  // pull enable
+	SetIO32  (&pReg_GPIO[g_I2C_GPIO_GRP]->GPIOx_PULLSEL_DISABLE_DEFAULT,    (1<<g_I2C_GPIO_SCL) );  // pullup
+	SetIO32  (&pReg_GPIO[g_I2C_GPIO_GRP]->GPIOx_PULLENB_DISABLE_DEFAULT,    (1<<g_I2C_GPIO_SCL) );  // pull enable
+
 }
 
 #if 0
@@ -117,10 +123,16 @@ void I2C_Deinit( void )
     ClearIO32(&pReg_GPIO[g_I2C_GPIO_GRP]->GPIOxALTFN[g_I2C_GPIO_SDA>>4], NX_GPIO_PADFUNC_3<<((g_I2C_GPIO_SDA&0xF)<<1));
     SetIO32  (&pReg_GPIO[g_I2C_GPIO_GRP]->GPIOxALTFN[g_I2C_GPIO_SDA>>4], NX_GPIO_PADFUNC_0<<((g_I2C_GPIO_SDA&0xF)<<1));
 #endif
-	SetIO32  (&pReg_GPIO[g_I2C_GPIO_GRP]->GPIOx_PULLSEL,    (1<<g_I2C_GPIO_SDA) );  // pullup
-	SetIO32  (&pReg_GPIO[g_I2C_GPIO_GRP]->GPIOx_PULLENB,    (1<<g_I2C_GPIO_SDA) );  // pull enable
-	SetIO32  (&pReg_GPIO[g_I2C_GPIO_GRP]->GPIOx_PULLSEL,    (1<<g_I2C_GPIO_SCL) );  // pullup
-	SetIO32  (&pReg_GPIO[g_I2C_GPIO_GRP]->GPIOx_PULLENB,    (1<<g_I2C_GPIO_SCL) );  // pull enable
+	ClearIO32  (&pReg_GPIO[g_I2C_GPIO_GRP]->GPIOx_PULLSEL,    (1<<g_I2C_GPIO_SDA) );  // pullup
+	ClearIO32  (&pReg_GPIO[g_I2C_GPIO_GRP]->GPIOx_PULLENB,    (1<<g_I2C_GPIO_SDA) );  // pull enable
+	ClearIO32  (&pReg_GPIO[g_I2C_GPIO_GRP]->GPIOx_PULLSEL,    (1<<g_I2C_GPIO_SCL) );  // pullup
+	ClearIO32  (&pReg_GPIO[g_I2C_GPIO_GRP]->GPIOx_PULLENB,    (1<<g_I2C_GPIO_SCL) );  // pull enable
+
+	ClearIO32  (&pReg_GPIO[g_I2C_GPIO_GRP]->GPIOx_PULLSEL_DISABLE_DEFAULT,    (1<<g_I2C_GPIO_SDA) );  // pullup
+	ClearIO32  (&pReg_GPIO[g_I2C_GPIO_GRP]->GPIOx_PULLENB_DISABLE_DEFAULT,    (1<<g_I2C_GPIO_SDA) );  // pull enable
+	ClearIO32  (&pReg_GPIO[g_I2C_GPIO_GRP]->GPIOx_PULLSEL_DISABLE_DEFAULT,    (1<<g_I2C_GPIO_SCL) );  // pullup
+	ClearIO32  (&pReg_GPIO[g_I2C_GPIO_GRP]->GPIOx_PULLENB_DISABLE_DEFAULT,    (1<<g_I2C_GPIO_SCL) );  // pull enable
+
 }
 #endif
 
