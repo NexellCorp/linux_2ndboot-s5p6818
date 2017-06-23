@@ -606,22 +606,22 @@ void gate_leveling_information(void)
 {
 	unsigned int slice, max_slice = 4;
 	unsigned int status, gate_center[4], gate_cycle[4], lock_value;
-	
+
 	status = mmio_read_32(&pReg_DDRPHY->CAL_FAIL_STAT[0]);
 	g_GT_code = mmio_read_32(&pReg_DDRPHY->CAL_GT_VWMC[0]);
 	for(slice = 0; slice < max_slice; slice++)
 		gate_center[slice] = g_GT_code >> (slice*8) & 0xFF;
-	
+
 	g_GT_cycle = mmio_read_32(&pReg_DDRPHY->CAL_GT_CYC);
 	for(slice = 0; slice < max_slice; slice++)
 		gate_cycle[slice] = g_GT_cycle >> (slice*3) & 0x7;
-	
+
 	lock_value = (mmio_read_32(&pReg_DDRPHY->MDLL_CON[1]) >> 8) & 0x1FF;
-	
+
 	MEMMSG("\r\n####### Gate Leveling - Information #######\r\n");
-	
+
 	MEMMSG("Gate Leveling %s!! \r\n", status ? "Failed" : "Success");
-	MEMMSG("Gate Level Center    : %2d, %2d, %2d, %2d\r\n", 
+	MEMMSG("Gate Level Center    : %2d, %2d, %2d, %2d\r\n",
 		gate_center[0], gate_center[1], gate_center[2], gate_center[3]);
 	MEMMSG("Gate Level Cycle     : %d, %d, %d, %d\r\n",
 		gate_cycle[0], gate_cycle[1], gate_cycle[2], gate_cycle[3]);
@@ -630,7 +630,7 @@ void gate_leveling_information(void)
 		(gate_cycle[1])*lock_value + gate_center[1],
 		(gate_cycle[2])*lock_value + gate_center[2],
 		(gate_cycle[3])*lock_value + gate_center[3]);
-	MEMMSG("###########################################\r\n");	
+	MEMMSG("###########################################\r\n");
 }
 #endif
 
@@ -1537,7 +1537,7 @@ int ddr3_initialize(unsigned int is_resume)
 		MR0.MR0.BT	= 1;
 		MR0.MR0.CL0	= (temp & 0x1);
 		MR0.MR0.CL1	= ((temp >> 1) & 0x7);
-		MR0.MR0.DLL	= 0; // 1;
+		MR0.MR0.DLL	= 1; // 1;
 #if (CFG_NSIH_EN == 0)
 		MR0.MR0.WR	= MR0_nWR;
 #else
@@ -1948,7 +1948,7 @@ int ddr3_initialize(unsigned int is_resume)
 	} while((temp & 0x7) < 0x5);
 #else
 
-	/* 
+	/*
 	  * Step 31. Disable "ctrl_dll_on" int MDLL_CON0[5] before Leveling
 	  * Turn on if the signal is High DLL turn on/Low is turen off.
 	  */
@@ -1987,7 +1987,7 @@ int ddr3_initialize(unsigned int is_resume)
 				return -1;
 		}
 
-		/* 
+		/*
 		  * Step 32-2. Gate Leveling
 		  * (It should be used only for DDR3 (800Mhz))
 		  */
